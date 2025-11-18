@@ -1,0 +1,61 @@
+/* Email Dashboard Specific Styles */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Prose styling for email body HTML content */
+.prose {
+  color: inherit;
+}
+
+.prose p {
+  margin-bottom: 1em;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.prose ul,
+.prose ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.prose li {
+  margin: 0.25em 0;
+}
+
+.prose a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.prose a:hover {
+  color: #1d4ed8;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose code {
+  background: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose pre {
+  background: #f3f4f6;
+  padding: 1em;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+}
+
