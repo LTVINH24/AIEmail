@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 import type { Mailbox, Email } from '@/types/email';
 import { emailService } from '@/services/emailService';
 import { MailboxList } from '@/components/MailboxList';
@@ -7,9 +10,20 @@ import { EmailDetail } from '@/components/EmailDetail';
 import { ComposeEmailModal } from '@/components/ComposeEmailModal';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, ArrowLeft } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Menu, ArrowLeft, LogOut, User } from 'lucide-react';
 
 export function InboxPage() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedMailboxId, setSelectedMailboxId] = useState<string>('inbox');
@@ -141,6 +155,26 @@ export function InboxPage() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success('Logged out successfully');
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Logout failed');
+    }
+  };
+
+  const getUserInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   const selectedEmail = emails.find(e => e.id === selectedEmailId) || null;
 
   return (
@@ -175,9 +209,36 @@ export function InboxPage() {
                 />
               </SheetContent>
             </Sheet>
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-lg font-semibold flex-1">
               {mailboxes.find(m => m.id === selectedMailboxId)?.name || 'Inbox'}
             </h1>
+            {/* User Menu - Mobile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>
+                      {user ? getUserInitials(user.name) : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user?.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         )}
       </div>
