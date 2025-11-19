@@ -1,5 +1,4 @@
 import { cookieManager } from '../utils/tokenManager';
-import { toast } from 'sonner';
 import type { ApiError } from '../types/auth';
 
 interface RequestConfig extends RequestInit {
