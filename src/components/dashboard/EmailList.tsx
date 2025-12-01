@@ -1,30 +1,42 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Email } from '@/types/email';
-import { Star, Paperclip, RefreshCw, Trash2, Mail, MailOpen, Edit } from 'lucide-react';
+import { Star, Paperclip, RefreshCw, Trash2, Mail, MailOpen, Edit, Inbox, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
 interface EmailListProps {
   emails: Email[];
   selectedEmailId: string | null;
+  mailboxId: string;
   onSelectEmail: (emailId: string) => void;
   onToggleStar: (emailId: string) => void;
   onRefresh: () => void;
   onCompose: () => void;
   onDelete: (emailIds: string[]) => void;
+  onPermanentDelete?: (emailIds: string[]) => void;
+  onMoveToInbox?: (emailIds: string[]) => void;
   onToggleRead: (emailIds: string[]) => void;
+  isLoading?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export function EmailList({
   emails,
   selectedEmailId,
+  mailboxId,
   onSelectEmail,
   onToggleStar,
   onRefresh,
   onCompose,
   onDelete,
+  onPermanentDelete,
+  onMoveToInbox,
   onToggleRead,
+  isLoading = false,
+  hasMore = false,
+  onLoadMore,
 }: EmailListProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -47,8 +59,19 @@ export function EmailList({
   };
 
   const handleBulkDelete = () => {
-    onDelete(Array.from(selectedIds));
+    if (mailboxId === 'TRASH' && onPermanentDelete) {
+      onPermanentDelete(Array.from(selectedIds));
+    } else {
+      onDelete(Array.from(selectedIds));
+    }
     setSelectedIds(new Set());
+  };
+
+  const handleBulkMoveToInbox = () => {
+    if (onMoveToInbox) {
+      onMoveToInbox(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    }
   };
 
   const handleBulkToggleRead = () => {
@@ -91,10 +114,25 @@ export function EmailList({
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <span className="text-xs sm:text-sm text-gray-600">{selectedIds.size} selected</span>
-            <Button onClick={handleBulkDelete} variant="outline" size="sm" className="gap-1.5">
-              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Delete</span>
-            </Button>
+            
+            {mailboxId === 'TRASH' ? (
+              <>
+                <Button onClick={handleBulkDelete} variant="outline" size="sm" className="gap-1.5 text-red-600 hover:text-red-700">
+                  <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Delete Forever</span>
+                </Button>
+                <Button onClick={handleBulkMoveToInbox} variant="outline" size="sm" className="gap-1.5">
+                  <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Move to Inbox</span>
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleBulkDelete} variant="outline" size="sm" className="gap-1.5">
+                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Delete</span>
+              </Button>
+            )}
+            
             <Button onClick={handleBulkToggleRead} variant="outline" size="sm" className="gap-1.5">
               <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Toggle Read</span>
@@ -106,26 +144,34 @@ export function EmailList({
       {/* Email List */}
       <div className="flex-1 overflow-y-auto">
         <div className="divide-y">
-          {/* Select All Row */}
-          <div className="px-2 sm:px-4 py-2 bg-gray-50 border-b flex items-center gap-2 sm:gap-3">
-            <Checkbox
-              checked={selectedIds.size === emails.length && emails.length > 0}
-              onCheckedChange={handleSelectAll}
-              aria-label="Select all emails"
-            />
-            <span className="text-xs sm:text-sm text-gray-600">
-              {emails.length} {emails.length === 1 ? 'email' : 'emails'}
-            </span>
-          </div>
+          {!isLoading && (
+            <div className="px-2 sm:px-4 py-2 bg-gray-50 border-b flex items-center gap-2 sm:gap-3">
+              <Checkbox
+                checked={selectedIds.size === emails.length && emails.length > 0}
+                onCheckedChange={handleSelectAll}
+                aria-label="Select all emails"
+              />
+              <span className="text-xs sm:text-sm text-gray-600">
+                {emails.length} {emails.length === 1 ? 'email' : 'emails'}
+              </span>
+            </div>
+          )}
 
-          {/* Email Items */}
-          {emails.length === 0 ? (
+          {isLoading ? (
+            <div className="p-8 text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-blue-600" />
+              <p className="mt-2 text-sm text-gray-600">Loading...</p>
+            </div>
+          ) : null}
+
+          {!isLoading && emails.length === 0 ? (
             <div className="p-4 sm:p-8 text-center text-gray-500">
               <Mail className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
               <p className="text-xs sm:text-sm">No emails in this folder</p>
             </div>
-          ) : (
-            emails.map((email) => {
+          ) : null}
+
+          {!isLoading && emails.map((email) => {
               const isSelected = email.id === selectedEmailId;
               const isChecked = selectedIds.has(email.id);
 
@@ -135,7 +181,7 @@ export function EmailList({
                   className={cn(
                     'px-2 sm:px-4 py-2 sm:py-3 cursor-pointer transition-colors hover:bg-gray-50',
                     isSelected && 'bg-blue-50 hover:bg-blue-50',
-                    !email.isRead && 'bg-blue-50/30'
+                    !email.isRead && 'bg-blue-50/50'
                   )}
                   onClick={() => onSelectEmail(email.id)}
                 >
@@ -203,6 +249,19 @@ export function EmailList({
                 </div>
               );
             })
+          }
+
+          {!isLoading && hasMore && (
+            <div className="p-4 text-center border-t bg-gray-50">
+              <Button
+                onClick={onLoadMore}
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto min-w-[120px]"
+              >
+                Load More
+              </Button>
+            </div>
           )}
         </div>
       </div>
