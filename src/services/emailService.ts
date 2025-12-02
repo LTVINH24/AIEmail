@@ -148,37 +148,34 @@ export const emailService = {
       if (mailboxId === 'TRASH' || mailboxId === 'SPAM') {
         params.append('includeSpamTrash', 'true');
       }
-      
       const response = await apiClient.get<ListThreadResponse>(
         `/mailboxes/${mailboxId}/emails?${params.toString()}`
       );
 
-      const emails: Email[] = [];
-      
-      if (response.threads && response.threads.length > 0) {
-        const emailPromises = response.threads.map(async (thread) => {
-          try {
-            const detail = await this.getEmailById(thread.id);
-            if (detail) {
-              return {
-                ...detail,
-                preview: thread.snippet,
-              };
-            }
-            return null;
-          } catch (error) {
-            console.error(`Failed to fetch thread ${thread.id}:`, error);
-            return null;
-          }
-        });
-        
-        const results = await Promise.all(emailPromises);
-        emails.push(...results.filter((email): email is Email => email !== null));
-      }
+      // Build lightweight preview emails from thread summaries.
+      // We avoid fetching full thread details here to reduce initial load.
+      const emails: Email[] = (response.threads || []).map((thread) => ({
+        id: thread.id,
+        threadId: thread.id,
+        from: { name: '(Unknown)', email: '' },
+        to: [],
+        subject: thread.snippet || '(No Subject)',
+        preview: thread.snippet || '',
+        body: '',
+        htmlBody: undefined,
+        timestamp: new Date().toISOString(),
+        isRead: true, // default; will be updated when detail is fetched
+        isStarred: false,
+        hasAttachments: false,
+        attachments: [],
+        mailboxId: mailboxId,
+        messageId: undefined,
+        messages: undefined,
+      }));
 
       return {
         emails,
-        total: response.resultSizeEstimate || emails.length,
+        total: Number(response.resultSizeEstimate) || emails.length,
         page: 1,
         pageSize,
         nextPageToken: response.nextPageToken,

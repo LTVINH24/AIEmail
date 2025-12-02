@@ -193,6 +193,7 @@ export function EmailList({
           {!isLoading && emails.map((email) => {
               const isSelected = email.id === selectedEmailId;
               const isChecked = selectedIds.has(email.id);
+              const isSkeleton = !email.messages || email.from.name === '(Unknown)';
 
               return (
                 <div
@@ -234,35 +235,48 @@ export function EmailList({
 
                     {/* Email Content */}
                     <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
-                        <span
-                          className={cn(
-                            'text-xs sm:text-sm truncate flex-1 min-w-0',
-                            !email.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'
-                          )}
-                        >
-                          {email.from.name}
-                        </span>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {email.hasAttachments && (
-                            <Paperclip className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400" />
-                          )}
-                          <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap">
-                            {formatTime(email.timestamp)}
-                          </span>
+                      {isSkeleton ? (
+                        <div className="animate-pulse">
+                          <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
+                            <div className="h-4 w-32 bg-gray-200 rounded" />
+                            <div className="ml-auto h-3 w-12 bg-gray-200 rounded" />
+                          </div>
+                          <div className="h-4 w-3/4 bg-gray-200 rounded mb-1" />
+                          <div className="h-3 w-1/2 bg-gray-200 rounded" />
                         </div>
-                      </div>
-                      <div
-                        className={cn(
-                          'text-xs sm:text-sm truncate mb-0.5 sm:mb-1',
-                          !email.isRead ? 'font-medium text-gray-900' : 'text-gray-600'
-                        )}
-                      >
-                        {email.subject}
-                      </div>
-                      <div className="text-xs sm:text-sm text-gray-500 truncate">
-                        {email.preview}
-                      </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
+                            <span
+                              className={cn(
+                                'text-xs sm:text-sm truncate flex-1 min-w-0',
+                                !email.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'
+                              )}
+                            >
+                              {email.from.name}
+                            </span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {email.hasAttachments && (
+                                <Paperclip className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400" />
+                              )}
+                              <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap">
+                                {formatTime(email.timestamp)}
+                              </span>
+                            </div>
+                          </div>
+                          <div
+                            className={cn(
+                              'text-xs sm:text-sm truncate mb-0.5 sm:mb-1',
+                              !email.isRead ? 'font-medium text-gray-900' : 'text-gray-600'
+                            )}
+                          >
+                            {email.subject}
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-500 truncate">
+                            {email.preview}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

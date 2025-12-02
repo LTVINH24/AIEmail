@@ -68,6 +68,44 @@ export function InboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMailboxId]);
 
+  const prefetchEmailDetails = async (emailsToPrefetch: Email[], mailboxIdForPrefetch: string) => {
+    const concurrency = 4;
+    let index = 0;
+
+    const worker = async () => {
+      while (true) {
+        let current: Email | undefined;
+        // get next
+        if (index < emailsToPrefetch.length) {
+          current = emailsToPrefetch[index++];
+        } else {
+          break;
+        }
+
+        if (!current) break;
+
+        if (mailboxIdForPrefetch !== selectedMailboxId) return;
+
+        if (current.messages && current.messages.length > 0) continue;
+
+        try {
+          const detail = await emailService.getEmailById(current.threadId);
+          if (detail) {
+            setEmails(prev => {
+              if (mailboxIdForPrefetch !== selectedMailboxId) return prev;
+              return prev.map(e => e.id === detail.id ? { ...detail, preview: e.preview || detail.preview } : e);
+            });
+          }
+        } catch (error) {
+          console.error('Prefetch detail failed for', current.threadId, error);
+        }
+      }
+    };
+
+    const workers = Array.from({ length: Math.min(concurrency, emailsToPrefetch.length) }, () => worker());
+    await Promise.all(workers);
+  };
+
   const loadMailboxes = async () => {
     setIsLoadingMailboxes(true);
     try {
@@ -100,6 +138,10 @@ export function InboxPage() {
       } else {
         setEmails(prev => [...prev, ...response.emails]);
       }
+
+      // Start background prefetch of details (limited concurrency). Do not block UI.
+      // We pass the mailbox id so we avoid merging results if user navigates away.
+      prefetchEmailDetails(response.emails, selectedMailboxId).catch(err => console.error('Background prefetch error', err));
       
       setNextPageToken(response.nextPageToken);
       setHasMore(!!response.nextPageToken);
@@ -138,9 +180,23 @@ export function InboxPage() {
     setSelectedEmailId(emailId);
     setShowEmailDetail(true);
     navigate(`/mailbox/${selectedMailboxId}/${emailId}`);
-    
-    // Mark as read when opened
+
+    // If we don't have full detail yet, fetch it immediately so detail pane can show.
     const email = emails.find(e => e.id === emailId);
+    if (email && !email.messages) {
+      (async () => {
+        try {
+          const detail = await emailService.getEmailById(email.threadId);
+          if (detail) {
+            setEmails(prev => prev.map(e => e.id === detail.id ? { ...detail, preview: e.preview || detail.preview } : e));
+          }
+        } catch (error) {
+          console.error('Failed to fetch email detail on select:', error);
+        }
+      })();
+    }
+
+    // Mark as read when opened (works with threadId even if detail not present)
     if (email && !email.isRead) {
       handleToggleRead([emailId]);
     }
