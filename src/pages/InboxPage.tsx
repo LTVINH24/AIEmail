@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import type { Mailbox, Email } from '@/types/email';
@@ -23,11 +23,12 @@ import { Menu, ArrowLeft, LogOut } from 'lucide-react';
 
 export function InboxPage() {
   const navigate = useNavigate();
+  const { mailboxId: urlMailboxId, emailId: urlEmailId } = useParams<{ mailboxId: string; emailId?: string }>();
   const { user, logout } = useAuth();
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
   const [emails, setEmails] = useState<Email[]>([]);
-  const [selectedMailboxId, setSelectedMailboxId] = useState<string>('INBOX');
-  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
+  const [selectedMailboxId, setSelectedMailboxId] = useState<string>(urlMailboxId || 'INBOX');
+  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(urlEmailId || null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [composeDefaults, setComposeDefaults] = useState<{
     to?: string;
@@ -49,6 +50,16 @@ export function InboxPage() {
   useEffect(() => {
     loadMailboxes();
   }, []);
+
+  useEffect(() => {
+    if (urlMailboxId && urlMailboxId !== selectedMailboxId) {
+      setSelectedMailboxId(urlMailboxId);
+    }
+    if (urlEmailId !== undefined) {
+      setSelectedEmailId(urlEmailId || null);
+      setShowEmailDetail(!!urlEmailId);
+    }
+  }, [urlMailboxId, urlEmailId]);
 
   // Load emails when mailbox changes
   useEffect(() => {
@@ -119,11 +130,13 @@ export function InboxPage() {
     setSelectedMailboxId(mailboxId);
     setIsMobileMenuOpen(false);
     setIsLoadingEmails(true);
+    navigate(`/mailbox/${mailboxId}`);
   };
 
   const handleSelectEmail = (emailId: string) => {
     setSelectedEmailId(emailId);
     setShowEmailDetail(true);
+    navigate(`/mailbox/${selectedMailboxId}/${emailId}`);
     
     // Mark as read when opened
     const email = emails.find(e => e.id === emailId);
@@ -157,6 +170,7 @@ export function InboxPage() {
     if (emailIds.includes(selectedEmailId || '')) {
       setSelectedEmailId(null);
       setShowEmailDetail(false);
+      navigate(`/mailbox/${selectedMailboxId}`);
     }
 
     try {
@@ -178,6 +192,7 @@ export function InboxPage() {
     if (emailIds.includes(selectedEmailId || '')) {
       setSelectedEmailId(null);
       setShowEmailDetail(false);
+      navigate(`/mailbox/${selectedMailboxId}`);
     }
 
     try {
@@ -199,6 +214,7 @@ export function InboxPage() {
     if (emailIds.includes(selectedEmailId || '')) {
       setSelectedEmailId(null);
       setShowEmailDetail(false);
+      navigate(`/mailbox/${selectedMailboxId}`);
     }
 
     try {
@@ -397,7 +413,10 @@ export function InboxPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowEmailDetail(false)}
+              onClick={() => {
+                setShowEmailDetail(false);
+                navigate(`/mailbox/${selectedMailboxId}`);
+              }}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />

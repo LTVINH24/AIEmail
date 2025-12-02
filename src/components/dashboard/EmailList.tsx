@@ -4,6 +4,16 @@ import type { Email } from '@/types/email';
 import { Star, Paperclip, RefreshCw, Trash2, Mail, MailOpen, Edit, Inbox, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface EmailListProps {
   emails: Email[];
@@ -39,6 +49,7 @@ export function EmailList({
   onLoadMore,
 }: EmailListProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleSelectAll = () => {
     if (selectedIds.size === emails.length) {
@@ -60,11 +71,19 @@ export function EmailList({
 
   const handleBulkDelete = () => {
     if (mailboxId === 'TRASH' && onPermanentDelete) {
-      onPermanentDelete(Array.from(selectedIds));
+      setShowDeleteDialog(true);
     } else {
       onDelete(Array.from(selectedIds));
+      setSelectedIds(new Set());
     }
-    setSelectedIds(new Set());
+  };
+
+  const confirmPermanentDelete = () => {
+    if (onPermanentDelete) {
+      onPermanentDelete(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    }
+    setShowDeleteDialog(false);
   };
 
   const handleBulkMoveToInbox = () => {
@@ -265,6 +284,24 @@ export function EmailList({
           )}
         </div>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Forever?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedIds.size} email{selectedIds.size > 1 ? 's' : ''}. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPermanentDelete} className="bg-red-600 hover:bg-red-700">
+              Delete Forever
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

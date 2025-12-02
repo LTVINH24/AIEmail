@@ -7,6 +7,16 @@ import { cn } from '@/lib/utils';
 import { emailService } from '@/services/emailService';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface EmailDetailProps {
   email: Email | null;
@@ -112,6 +122,8 @@ export function EmailDetail({
   onToggleRead,
   onToggleStar,
 }: EmailDetailProps) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
   if (!email) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-gray-50 p-8">
@@ -170,7 +182,7 @@ export function EmailDetail({
         
         {mailboxId === 'TRASH' ? (
           <>
-            <Button onClick={onPermanentDelete} variant="outline" size="sm" className="gap-1.5 text-red-600 hover:text-red-700">
+            <Button onClick={() => setShowDeleteDialog(true)} variant="outline" size="sm" className="gap-1.5 text-red-600 hover:text-red-700">
               <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden lg:inline">Delete Forever</span>
             </Button>
@@ -461,6 +473,30 @@ export function EmailDetail({
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Forever?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this email. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                onPermanentDelete?.();
+                setShowDeleteDialog(false);
+              }} 
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Forever
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
