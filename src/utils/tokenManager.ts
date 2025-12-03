@@ -63,12 +63,24 @@ function deleteCookie(name: string, path: string = '/'): void {
 
 export const cookieManager = {
   setAccessToken(token: string): void {
-    setCookie(ACCESS_TOKEN_KEY, token, {
-      expires: ACCESS_TOKEN_EXPIRY_DAYS,
-      secure: false, // Set to false for localhost development
-      sameSite: 'Lax',
-    });
-    console.log('Access token set:', `${token.substring(0, 20)}...`);
+    try {
+      setCookie(ACCESS_TOKEN_KEY, token, {
+        expires: ACCESS_TOKEN_EXPIRY_DAYS,
+        secure: false, // Set to false for localhost development
+        sameSite: 'Lax',
+      });
+      console.log('Access token set successfully:', `${token.substring(0, 20)}...`);
+      
+      // Verify token was set
+      const verifyToken = this.getAccessToken();
+      if (!verifyToken) {
+        console.error('Failed to set access token - token not found after setting');
+      } else {
+        console.log('Access token verified in cookies');
+      }
+    } catch (error) {
+      console.error('Error setting access token:', error);
+    }
   },
 
   getAccessToken(): string | null {
@@ -99,12 +111,24 @@ export const cookieManager = {
   },
 
   setRefreshToken(token: string): void {
-    setCookie(REFRESH_TOKEN_KEY, token, {
-      expires: REFRESH_TOKEN_EXPIRY_DAYS,
-      secure: false, // Set to false for localhost development
-      sameSite: 'Lax',
-    });
-    console.log('Refresh token set:', `${token.substring(0, 20)}...`);
+    try {
+      setCookie(REFRESH_TOKEN_KEY, token, {
+        expires: REFRESH_TOKEN_EXPIRY_DAYS,
+        secure: false, // Set to false for localhost development
+        sameSite: 'Lax',
+      });
+      console.log('Refresh token set successfully:', `${token.substring(0, 20)}...`);
+      
+      // Verify token was set
+      const verifyToken = this.getRefreshToken();
+      if (!verifyToken) {
+        console.error('Failed to set refresh token - token not found after setting');
+      } else {
+        console.log('Refresh token verified in cookies');
+      }
+    } catch (error) {
+      console.error('Error setting refresh token:', error);
+    }
   },
 
   getRefreshToken(): string | null {

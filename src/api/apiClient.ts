@@ -43,10 +43,20 @@ class ApiClient {
     }
 
     try {
+      console.log(`API Request - ${fetchConfig.method || 'GET'} ${url}`);
+      console.log('API Request - Headers:', headers);
+      if (fetchConfig.body) {
+        console.log('API Request - Body:', fetchConfig.body);
+      }
+      
       const response = await fetch(url, {
         ...fetchConfig,
         headers,
       });
+
+      console.log(`API Response - Status: ${response.status}`);
+      console.log('API Response - Headers:', Object.fromEntries(response.headers.entries()));
+      console.log('API Response - URL after redirects:', response.url);
 
       // Handle 401 Unauthorized - Token expired
       if (response.status === 401 && !skipAuth && !isRetry) {
@@ -62,6 +72,14 @@ class ApiClient {
       }
 
       if (!response.ok) {
+        console.error(`API Response Error - Status: ${response.status}`);
+        try {
+          const errorBody = await response.text();
+          console.error('API Response Error Body:', errorBody);
+        } catch (e) {
+          console.error('Could not read error response body');
+        }
+        
         const error: ApiError = await response.json().catch(() => ({
           message: `HTTP error! status: ${response.status}`,
         }));
@@ -73,11 +91,29 @@ class ApiClient {
       }
 
       const contentType = response.headers.get('content-type');
+      console.log('API Response - Content-Type:', contentType);
+      
+      if (response.status === 204) {
+        return {} as T;
+      }
+      
       if (contentType && contentType.includes('application/json')) {
-        return response.json();
+        const jsonResponse = await response.json();
+        console.log('API Response - JSON Body:', jsonResponse);
+        return jsonResponse;
       } else {
         const text = await response.text();
-        return (text || {}) as T;
+        console.log('API Response - Text Body:', text);
+        
+        // Try to parse as JSON even if content-type is not set correctly
+        try {
+          const jsonResponse = JSON.parse(text);
+          console.log('API Response - Parsed JSON from text:', jsonResponse);
+          return jsonResponse;
+        } catch (e) {
+          console.log('API Response - Could not parse as JSON, returning as text');
+          return (text || {}) as T;
+        }
       }
     } catch (error) {
       console.error('API request failed:', error);

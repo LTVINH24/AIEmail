@@ -53,6 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (accessToken) {
           try {
+            // For Google auth, we need the email. Try to get it from the token payload
             const user = authService.getUserFromToken(accessToken);
             setState({
               user,
@@ -61,8 +62,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               error: null,
             });
             return;
-          } catch {
-            console.log('Access token invalid, trying refresh token');
+          } catch (error) {
+            console.log('Access token invalid or decode failed:', error);
+            // Clear invalid access token
+            cookieManager.clearAccessToken();
           }
         }
 
@@ -175,13 +178,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const handleGoogleCallback = useCallback(async (code: string, state?: string) => {
+    console.log('AuthContext - handleGoogleCallback started', { code: !!code, state });
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      console.log('AuthContext - Calling authService.handleGoogleCallback');
       const response = await authService.handleGoogleCallback(code, state);
+      console.log('AuthContext - Got response:', {
+        hasAccessToken: !!response.accessToken,
+        hasRefreshToken: !!response.refreshToken,
+        email: response.email
+      });
+
+      console.log('AuthContext - Setting tokens in cookies');
       cookieManager.setTokens(response.accessToken, response.refreshToken);
 
+      console.log('AuthContext - Creating user from token');
       const user = authService.getUserFromToken(response.accessToken, response.email);
+      console.log('AuthContext - User created:', user);
 
       setState({
         user,
@@ -189,7 +203,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isLoading: false,
         error: null,
       });
+      console.log('AuthContext - State updated successfully');
     } catch (error) {
+      console.error('AuthContext - handleGoogleCallback error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Google login failed';
       setState({
         user: null,

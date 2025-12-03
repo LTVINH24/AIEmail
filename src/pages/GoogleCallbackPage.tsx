@@ -17,6 +17,8 @@ export const GoogleCallbackPage: React.FC = () => {
       const state = searchParams.get('state');
       const error = searchParams.get('error');
 
+      console.log('GoogleCallback - Processing callback:', { code: !!code, state, error });
+
       // Handle OAuth errors
       if (error) {
         toast.error(`Google authentication failed: ${error}`);
@@ -32,11 +34,17 @@ export const GoogleCallbackPage: React.FC = () => {
       }
 
       try {
+        console.log('GoogleCallback - Calling handleGoogleCallback');
         // Process the Google OAuth callback
         await handleGoogleCallback(code, state || undefined);
+        console.log('GoogleCallback - handleGoogleCallback successful');
+        
+        // Add a small delay to ensure auth state is fully updated
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         toast.success('Google sign-in successful!');
         
-        // Navigate to inbox after successful login
+        console.log('GoogleCallback - Navigating to inbox');
         navigate('/inbox', { replace: true });
       } catch (error) {
         console.error('Google OAuth callback error:', error);
@@ -48,12 +56,7 @@ export const GoogleCallbackPage: React.FC = () => {
     processCallback();
   }, [searchParams, handleGoogleCallback, navigate]);
 
-  // If already authenticated, redirect to inbox
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/inbox', { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">

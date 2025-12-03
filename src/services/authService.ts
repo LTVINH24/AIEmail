@@ -26,6 +26,7 @@ class AuthService {
     if (state) {
       url.searchParams.append('state', state);
     }
+    console.log('AuthService - Google Auth URL:', url.toString());
     return url.toString();
   }
 
@@ -34,12 +35,25 @@ class AuthService {
    * This would be called from the callback page with the authorization code
    */
   async handleGoogleCallback(code: string, state?: string): Promise<AuthResponse> {
-  return apiClient.post<AuthResponse>(
-    '/auth/google/callback',
-    { code, state },
-    { skipAuth: true }
-  );
-}
+    console.log('AuthService - handleGoogleCallback called', { code: code.substring(0, 20) + '...', state });
+    
+    try {
+      const response = await apiClient.post<AuthResponse>(
+        '/auth/google/callback', // Direct call without proxy
+        { code, state },
+        { skipAuth: true }
+      );
+      console.log('AuthService - Backend response:', {
+        hasAccessToken: !!response.accessToken,
+        hasRefreshToken: !!response.refreshToken,
+        email: response.email
+      });
+      return response;
+    } catch (error) {
+      console.error('AuthService - handleGoogleCallback error:', error);
+      throw error;
+    }
+  }
 
   async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
     return apiClient.post<RefreshTokenResponse>('/auth/refresh', { refreshToken }, { skipAuth: true });
@@ -53,6 +67,10 @@ class AuthService {
     try {
       // Decode JWT token (simple decode without verification - verification happens on backend)
       const base64Url = token.split('.')[1];
+      if (!base64Url) {
+        throw new Error('Invalid token format');
+      }
+      
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(
         atob(base64)
