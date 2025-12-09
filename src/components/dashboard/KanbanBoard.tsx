@@ -51,6 +51,8 @@ export function KanbanBoard({
       .filter(m => m.type === 'custom' && !['INBOX', 'TODO', 'DONE'].includes(m.id))
       .map(m => ({ id: m.id, name: m.name, icon: m.icon }));
     
+      console.log('Custom Labels:', customLabels);
+      console.log('Mailboxes:', mailboxes);
     setColumns([...DEFAULT_COLUMNS, ...customLabels]);
   }, [mailboxes]);
 
@@ -159,7 +161,6 @@ export function KanbanBoard({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold">Kanban View</h2>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm">

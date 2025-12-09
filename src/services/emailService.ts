@@ -77,7 +77,7 @@ export const emailService = {
   async getMailboxes(): Promise<Mailbox[]> {
     try {
       const labels = await apiClient.get<LabelResponse[]>('/mailboxes');
-      
+      console.log('Fetched Labels:', labels);
       const mailboxes: Mailbox[] = [];
       
       MAIN_LABEL_IDS.forEach(labelId => {
@@ -123,7 +123,7 @@ export const emailService = {
     if (labelId === 'DRAFT') return 'drafts';
     if (labelId === 'TRASH') return 'trash';
     if (labelId === 'SPAM') return 'spam';
-    return 'custom';
+    return 'system';
   },
 
   async getMailboxDetails(mailboxId: string): Promise<LabelDetailResponse> {
