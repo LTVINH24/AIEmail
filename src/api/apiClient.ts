@@ -69,13 +69,7 @@ class ApiClient {
         return {} as T;
       }
 
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return response.json();
-      } else {
-        const text = await response.text();
-        return (text || {}) as T;
-      }
+      return response.json();
     } catch (error) {
       console.error('API request failed:', error);
       throw error;

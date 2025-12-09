@@ -38,53 +38,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       try {
         const refreshToken = cookieManager.getRefreshToken();
-        const accessToken = cookieManager.getAccessToken();
         
-        if (!refreshToken && !accessToken) {
-          setState({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
-          });
+        if (!refreshToken) {
+          setState(prev => ({ ...prev, isLoading: false }));
           return;
         }
 
-        if (accessToken) {
-          try {
-            const user = authService.getUserFromToken(accessToken);
-            setState({
-              user,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-            });
-            return;
-          } catch {
-            console.log('Access token invalid, trying refresh token');
-          }
-        }
+        // Try to refresh access token
+        const response = await authService.refreshToken(refreshToken);
+        cookieManager.setTokens(response.accessToken, response.refreshToken);
 
-        if (refreshToken) {
-          const response = await authService.refreshToken(refreshToken);
-          cookieManager.setTokens(response.accessToken, response.refreshToken);
-
-          const user = authService.getUserFromToken(response.accessToken, response.email);
-          
-          setState({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-        } else {
-          setState({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
-          });
-        }
+        const user = authService.getUserFromToken(response.accessToken, response.email);
+        
+        setState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
       } catch (error) {
         console.error('Failed to initialize auth:', error);
         cookieManager.clearAllTokens();

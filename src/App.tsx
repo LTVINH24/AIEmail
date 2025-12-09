@@ -18,26 +18,16 @@ function App() {
           
           {/* Protected Routes */}
           <Route
-            path="/mailbox/:mailboxId"
+            path="/inbox"
             element={
               <ProtectedRoute>
                 <InboxPage />
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/mailbox/:mailboxId/:emailId"
-            element={
-              <ProtectedRoute>
-                <InboxPage />
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route path="/inbox" element={<Navigate to="/mailbox/INBOX" replace />} />
           
           {/* Default Route */}
-          <Route path="/" element={<Navigate to="/mailbox/INBOX" replace />} />
+          <Route path="/" element={<Navigate to="/inbox" replace />} />
 
           {/* Not Found Route */}
           <Route path="*" element={<NotFoundPage />} />
