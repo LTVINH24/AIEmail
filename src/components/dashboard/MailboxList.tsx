@@ -6,8 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Mailbox } from '@/types/email';
 import { 
   Inbox, 
-  Star, 
-  Send, 
+  Star,
   FileEdit, 
   Archive, 
   Trash2, 
@@ -21,6 +20,7 @@ import {
   Tag,
   Bell,
   MessageSquare,
+  Clock,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -44,7 +44,7 @@ interface MailboxListProps {
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Inbox,
   Star,
-  Send,
+  Clock,
   FileEdit,
   Archive,
   Trash2,

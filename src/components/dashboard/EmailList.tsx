@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Email } from '@/types/email';
-import { Star, Paperclip, RefreshCw, Trash2, Mail, MailOpen, Edit, Inbox, Trash } from 'lucide-react';
+import { Star, Paperclip, RefreshCw, Trash2, Mail, MailOpen, Edit, Inbox, Trash, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -108,6 +108,26 @@ export function EmailList({
       return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     } else if (days === 1) {
       return 'Yesterday';
+    } else if (days < 7) {
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    } else {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const formatSnoozeTime = (snoozedUntil: string) => {
+    const date = new Date(snoozedUntil);
+    const now = new Date();
+    const diff = date.getTime() - now.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (hours < 1) {
+      return 'Soon';
+    } else if (hours < 24) {
+      return `${hours}h`;
+    } else if (days === 1) {
+      return 'Tomorrow';
     } else if (days < 7) {
       return date.toLocaleDateString('en-US', { weekday: 'short' });
     } else {
@@ -259,9 +279,18 @@ export function EmailList({
                               {email.hasAttachments && (
                                 <Paperclip className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400" />
                               )}
-                              <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap">
-                                {formatTime(email.timestamp)}
-                              </span>
+                              {mailboxId === 'SNOOZED' && email.snoozedUntil ? (
+                                <>
+                                  <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500" />
+                                  <span className="text-[10px] sm:text-xs text-blue-600 whitespace-nowrap font-medium">
+                                    {formatSnoozeTime(email.snoozedUntil)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap">
+                                  {formatTime(email.timestamp)}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div

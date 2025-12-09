@@ -92,11 +92,24 @@ export function InboxPage() {
         if (current.messages && current.messages.length > 0) continue;
 
         try {
+          console.log('Prefetching email detail:', { id: current.id, threadId: current.threadId, workflowEmailId: current.workflowEmailId });
           const detail = await emailService.getEmailById(current.threadId);
           if (detail) {
             setEmails(prev => {
               if (mailboxIdForPrefetch !== selectedMailboxId) return prev;
-              return prev.map(e => e.id === detail.id ? { ...detail, preview: e.preview || detail.preview } : e);
+              return prev.map(e => {
+                if (e.id === detail.id) {
+                  return { 
+                    ...detail, 
+                    preview: e.preview || detail.preview,
+                    isRead: e.workflowEmailId !== undefined ? e.isRead : detail.isRead,
+                    isStarred: e.workflowEmailId !== undefined ? e.isStarred : detail.isStarred,
+                    workflowEmailId: e.workflowEmailId, 
+                    snoozedUntil: e.snoozedUntil, 
+                  };
+                }
+                return e;
+              });
             });
           }
         } catch (error) {
@@ -188,9 +201,22 @@ export function InboxPage() {
     if (email && !email.messages) {
       (async () => {
         try {
+          console.log('Fetching email detail on select:', { id: email.id, threadId: email.threadId, workflowEmailId: email.workflowEmailId });
           const detail = await emailService.getEmailById(email.threadId);
           if (detail) {
-            setEmails(prev => prev.map(e => e.id === detail.id ? { ...detail, preview: e.preview || detail.preview } : e));
+            setEmails(prev => prev.map(e => {
+              if (e.id === detail.id) {
+                return { 
+                  ...detail, 
+                  preview: e.preview || detail.preview,
+                  isRead: e.workflowEmailId !== undefined ? e.isRead : detail.isRead,
+                  isStarred: e.workflowEmailId !== undefined ? e.isStarred : detail.isStarred,
+                  workflowEmailId: e.workflowEmailId, 
+                  snoozedUntil: e.snoozedUntil, 
+                };
+              }
+              return e;
+            }));
           }
         } catch (error) {
           console.error('Failed to fetch email detail on select:', error);
@@ -206,14 +232,48 @@ export function InboxPage() {
   const handleToggleStar = async (emailId: string) => {
     try {
       const email = emails.find(e => e.id === emailId);
-      if (email) {
+      if (!email) return;
+      
+      const newStarred = !email.isStarred;
+      
+      setEmails(emails.map(e => 
+        e.id === emailId 
+          ? { ...e, isStarred: newStarred }
+          : e
+      ));
+      
+      try {
         await emailService.toggleStar(email.threadId, email.isStarred);
+        
+        try {
+          let workflowId = email.workflowEmailId;
+          
+          if (!workflowId) {
+            const newEmail = await emailService.snoozeEmailByThreadId(
+              email.threadId,
+              new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) 
+            );
+            workflowId = newEmail.id;
+            await emailService.updateEmailStatus(workflowId, 'INBOX');
+            
+            setEmails(prev => prev.map(e =>
+              e.id === emailId ? { ...e, workflowEmailId: workflowId } : e
+            ));
+          }
+          
+          await emailService.updateEmailStarred(workflowId, newStarred);
+        } catch (error) {
+          console.warn('Failed to sync star status with workflow DB:', error);
+        }
+        
+        toast.success(email.isStarred ? 'Removed star' : 'Added star');
+      } catch (error) {
         setEmails(emails.map(e => 
           e.id === emailId 
-            ? { ...e, isStarred: !e.isStarred }
+            ? { ...e, isStarred: email.isStarred }
             : e
         ));
-        toast.success(email.isStarred ? 'Removed star' : 'Added star');
+        throw error;
       }
     } catch (error) {
       console.error('Failed to toggle star:', error);
@@ -293,25 +353,111 @@ export function InboxPage() {
 
   const handleToggleRead = async (emailIds: string[]) => {
     try {
-      await Promise.all(emailIds.map(id => {
-        const email = emails.find(e => e.id === id);
-        if (email) {
-          return email.isRead 
-            ? emailService.markAsUnread(email.threadId)
-            : emailService.markAsRead(email.threadId);
-        }
-        return Promise.resolve();
-      }));
+      const emailsToUpdate = emails.filter(e => emailIds.includes(e.id));
       
       setEmails(emails.map(email => 
         emailIds.includes(email.id)
           ? { ...email, isRead: !email.isRead }
           : email
       ));
-      toast.success('Updated read status');
+      
+      try {
+        await Promise.all(emailsToUpdate.map(email => {
+          if (email.threadId) {
+            return email.isRead 
+              ? emailService.markAsUnread(email.threadId)
+              : emailService.markAsRead(email.threadId);
+          }
+          return Promise.resolve();
+        }));
+        
+        await Promise.all(emailsToUpdate.map(async email => {
+          try {
+            let workflowId = email.workflowEmailId;
+            
+            if (!workflowId) {
+              const newEmail = await emailService.snoozeEmailByThreadId(
+                email.threadId,
+                new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) 
+              );
+              workflowId = newEmail.id;
+              await emailService.updateEmailStatus(workflowId, 'INBOX');
+              
+              setEmails(prev => prev.map(e =>
+                e.id === email.id ? { ...e, workflowEmailId: workflowId } : e
+              ));
+            }
+            
+            await emailService.updateEmailRead(workflowId, !email.isRead);
+          } catch (error) {
+            console.warn('Failed to sync read status with workflow DB:', error);
+          }
+        }));
+        
+        toast.success('Updated read status');
+      } catch (error) {
+        setEmails(emails.map(email => 
+          emailIds.includes(email.id)
+            ? { ...email, isRead: email.isRead }
+            : email
+        ));
+        throw error;
+      }
     } catch (error) {
       console.error('Failed to toggle read status:', error);
       toast.error('Failed to update read status');
+    }
+  };
+
+  const handleSnooze = async (emailId: string, snoozeDate: Date) => {
+    try {
+      const email = emails.find(e => e.id === emailId);
+      if (!email) return;
+
+      await emailService.snoozeEmailByThreadId(email.threadId, snoozeDate);
+      
+      setEmails(prev => prev.filter(e => e.id !== emailId));
+      
+      if (selectedEmailId === emailId) {
+        setSelectedEmailId(null);
+        setShowEmailDetail(false);
+        navigate(`/mailbox/${selectedMailboxId}`);
+      }
+      
+      toast.success(`Email snoozed until ${snoozeDate.toLocaleString('vi-VN', { 
+        dateStyle: 'medium', 
+        timeStyle: 'short' 
+      })}`);
+    } catch (error) {
+      console.error('Failed to snooze email:', error);
+      toast.error('Failed to snooze email. Please try opening the email first.');
+    }
+  };
+
+  const handleUnsnooze = async (workflowEmailId: number) => {
+    // console.log('handleUnsnooze called with workflowEmailId:', workflowEmailId);
+    // console.log('Current emails:', emails.map(e => ({ id: e.id, threadId: e.threadId, workflowEmailId: e.workflowEmailId })));
+    
+    try {
+      await emailService.unsnoozeEmail(workflowEmailId);
+
+      const email = emails.find(e => e.workflowEmailId === workflowEmailId);
+      // console.log('Found email to remove:', email);
+      
+      if (email) {
+        setEmails(prev => prev.filter(e => e.workflowEmailId !== workflowEmailId));
+
+        if (selectedEmailId === email.id) {
+          setSelectedEmailId(null);
+          setShowEmailDetail(false);
+          navigate(`/mailbox/${selectedMailboxId}`);
+        }
+      }
+
+      toast.success('Email restored from snooze');
+    } catch (error) {
+      console.error('Failed to unsnooze email:', error);
+      toast.error('Failed to unsnooze email');
     }
   };
 
@@ -683,6 +829,8 @@ export function InboxPage() {
                     onMoveToInbox={() => selectedEmailId && handleMoveToInbox([selectedEmailId])}
                     onToggleRead={() => selectedEmailId && handleToggleRead([selectedEmailId])}
                     onToggleStar={() => selectedEmailId && handleToggleStar(selectedEmailId)}
+                    onSnooze={handleSnooze}
+                    onUnsnooze={handleUnsnooze}
                   />
                 </SheetContent>
               </Sheet>
@@ -740,6 +888,8 @@ export function InboxPage() {
                 onMoveToInbox={() => selectedEmailId && handleMoveToInbox([selectedEmailId])}
                 onToggleRead={() => selectedEmailId && handleToggleRead([selectedEmailId])}
                 onToggleStar={() => selectedEmailId && handleToggleStar(selectedEmailId)}
+                onSnooze={handleSnooze}
+                onUnsnooze={handleUnsnooze}
               />
             </div>
           </>

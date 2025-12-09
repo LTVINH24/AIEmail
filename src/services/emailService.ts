@@ -11,11 +11,16 @@ import type {
   GmailSendResponse,
   ModifyEmailRequest,
   LabelDetailResponse,
+  SnoozeEmailRequest,
+  UpdateEmailStatusRequest,
+  EmailWorkflowResponse,
+  EmailStatus,
 } from '../types/email';
 
 const MAIN_LABEL_IDS = [
   'INBOX',
-  'STARRED', 
+  'STARRED',
+  'SNOOZED',
   'SENT',
   'DRAFT',
   'TRASH',
@@ -26,6 +31,7 @@ const MAIN_LABEL_IDS = [
 const LABEL_ICON_MAP: Record<string, string> = {
   'INBOX': 'Inbox',
   'STARRED': 'Star',
+  'SNOOZED': 'Clock',
   'SENT': 'Send',
   'DRAFT': 'FileEdit',
   'TRASH': 'Trash2',
@@ -42,6 +48,7 @@ const LABEL_ICON_MAP: Record<string, string> = {
 const LABEL_NAME_MAP: Record<string, string> = {
   'INBOX': 'Inbox',
   'STARRED': 'Starred',
+  'SNOOZED': 'Snoozed',
   'SENT': 'Sent',
   'DRAFT': 'Drafts',
   'TRASH': 'Trash',
@@ -81,6 +88,18 @@ export const emailService = {
       const mailboxes: Mailbox[] = [];
       
       MAIN_LABEL_IDS.forEach(labelId => {
+        if (labelId === 'SNOOZED') {
+          mailboxes.push({
+            id: 'SNOOZED',
+            name: 'Snoozed',
+            icon: 'Clock',
+            type: 'snoozed',
+            unreadCount: 0,
+            isMain: true,
+          });
+          return;
+        }
+        
         const label = labels.find(l => l.id === labelId);
         if (label) {
           mailboxes.push({
@@ -119,6 +138,7 @@ export const emailService = {
   getLabelType(labelId: string): Mailbox['type'] {
     if (labelId === 'INBOX') return 'inbox';
     if (labelId === 'STARRED') return 'starred';
+    if (labelId === 'SNOOZED') return 'snoozed';
     if (labelId === 'SENT') return 'sent';
     if (labelId === 'DRAFT') return 'drafts';
     if (labelId === 'TRASH') return 'trash';
@@ -137,6 +157,49 @@ export const emailService = {
     query?: string
   ): Promise<EmailListResponse> {
     try {
+      if (mailboxId === 'SNOOZED') {
+        const workflowEmails = await apiClient.get<EmailWorkflowResponse[]>(
+          '/api/emails?status=SNOOZED'
+        );
+        
+        // console.log('Loaded SNOOZED emails from workflow API:', workflowEmails);
+        
+        const emails: Email[] = workflowEmails.map((email) => {
+          if (!email.id) {
+            console.error('Missing workflow email ID:', email);
+          }
+          
+          return {
+            id: email.threadId,
+            threadId: email.threadId,
+            from: parseEmailAddress(email.from || ''),
+            to: parseEmailAddresses(email.to || ''),
+            subject: email.subject || '(No Subject)',
+            preview: email.snippet || '',
+            body: email.body || '',
+            htmlBody: undefined,
+            timestamp: email.receivedAt || new Date().toISOString(),
+            isRead: email.isRead ?? true,
+            isStarred: email.isStarred ?? false,
+            hasAttachments: false,
+            attachments: [],
+            mailboxId: 'SNOOZED',
+            messageId: undefined,
+            messages: undefined,
+            snoozedUntil: email.snoozedUntil,
+            workflowEmailId: email.id, 
+          };
+        });
+       
+        return {
+          emails,
+          total: emails.length,
+          page: 1,
+          pageSize,
+          nextPageToken: undefined,
+        };
+      }
+      
       const params = new URLSearchParams();
       
       if (pageSize) params.append('maxResults', pageSize.toString());
@@ -150,7 +213,7 @@ export const emailService = {
         `/mailboxes/${mailboxId}/emails?${params.toString()}`
       );
 
-      const emails: Email[] = (response.threads || []).map((thread) => ({
+      let emails: Email[] = (response.threads || []).map((thread) => ({
         id: thread.id,
         threadId: thread.id,
         from: { name: '(Unknown)', email: '' },
@@ -160,14 +223,49 @@ export const emailService = {
         body: '',
         htmlBody: undefined,
         timestamp: new Date().toISOString(),
-        isRead: true,
-        isStarred: false,
+        isRead: true, 
+        isStarred: false, 
         hasAttachments: false,
         attachments: [],
         mailboxId: mailboxId,
         messageId: undefined,
         messages: undefined,
       }));
+      
+      try {
+        const allWorkflowEmails = await apiClient.get<EmailWorkflowResponse[]>('/api/emails');
+        const workflowEmailMap = new Map(
+          allWorkflowEmails.map(e => [e.threadId, e])
+        );
+        
+        const snoozedThreadIds = new Set(
+          allWorkflowEmails
+            .filter(e => e.status === 'SNOOZED')
+            .map(e => e.threadId)
+        );
+        
+        if (snoozedThreadIds.size > 0) {
+          emails = emails.filter(email => !snoozedThreadIds.has(email.threadId));
+        }
+        
+        emails = emails.map(email => {
+          const workflowEmail = workflowEmailMap.get(email.threadId);
+          if (workflowEmail) {
+            return {
+              ...email,
+              isRead: workflowEmail.isRead ?? email.isRead,
+              isStarred: workflowEmail.isStarred ?? email.isStarred,
+              workflowEmailId: workflowEmail.id, 
+            };
+          }
+          return email;
+        });
+        
+        // console.log('Merged workflow status for emails:', emails.filter(e => e.workflowEmailId).length);
+      } catch (error) {
+        console.warn('Failed to fetch workflow emails for merging:', error);
+        // Continue without merging if API call fails
+      }
 
       return {
         emails,
@@ -184,6 +282,10 @@ export const emailService = {
 
   async getEmailById(threadId: string): Promise<Email | null> {
     try {
+      if (!threadId || threadId === 'undefined' || threadId === 'null') {
+        console.error('Invalid threadId:', threadId);
+        return null;
+      }
       const thread = await apiClient.get<ThreadDetailResponse>(`/emails/${threadId}`);
       
       if (!thread.messages || thread.messages.length === 0) {
@@ -242,6 +344,7 @@ export const emailService = {
         })),
         mailboxId: 'INBOX',
         messages,
+        workflowEmailId: undefined, 
       };
     } catch (error) {
       console.error('Failed to fetch email:', error);
@@ -418,6 +521,112 @@ export const emailService = {
       await apiClient.delete(`/mailboxes/${labelId}`);
     } catch (error) {
       console.error('Failed to delete label:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get all workflow emails (with status and summary)
+   */
+  async getWorkflowEmails(status?: EmailStatus): Promise<EmailWorkflowResponse[]> {
+    try {
+      const params = status ? `?status=${status}` : '';
+      return await apiClient.get<EmailWorkflowResponse[]>(`/api/emails${params}`);
+    } catch (error) {
+      console.error('Failed to fetch workflow emails:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update email status (for drag & drop in Kanban)
+   */
+  async updateEmailStatus(emailId: number, status: EmailStatus): Promise<EmailWorkflowResponse> {
+    try {
+      const request: UpdateEmailStatusRequest = { status };
+      return await apiClient.patch<EmailWorkflowResponse>(`/api/emails/${emailId}/status`, request);
+    } catch (error) {
+      console.error('Failed to update email status:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Snooze email until specified time
+   */
+  async snoozeEmail(emailId: number, snoozeUntil: Date, note?: string): Promise<EmailWorkflowResponse> {
+    try {
+      const request: SnoozeEmailRequest = {
+        snoozeUntil: snoozeUntil.toISOString(),
+        note,
+      };
+      return await apiClient.post<EmailWorkflowResponse>(`/api/emails/${emailId}/snooze`, request);
+    } catch (error) {
+      console.error('Failed to snooze email:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Snooze email by thread ID (preferred method - works with Gmail threadId)
+   */
+  async snoozeEmailByThreadId(threadId: string, snoozeUntil: Date, note?: string): Promise<EmailWorkflowResponse> {
+    try {
+      const request: SnoozeEmailRequest = {
+        snoozeUntil: snoozeUntil.toISOString(),
+        note,
+      };
+      return await apiClient.post<EmailWorkflowResponse>(`/api/emails/thread/${threadId}/snooze`, request);
+    } catch (error) {
+      console.error('Failed to snooze email:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Unsnooze email (restore immediately)
+   */
+  async unsnoozeEmail(emailId: number): Promise<EmailWorkflowResponse> {
+    try {
+      return await apiClient.post<EmailWorkflowResponse>(`/api/emails/${emailId}/unsnooze`, {});
+    } catch (error) {
+      console.error('Failed to unsnooze email:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete workflow email
+   */
+  async deleteWorkflowEmail(emailId: number): Promise<void> {
+    try {
+      await apiClient.delete(`/api/emails/${emailId}`);
+    } catch (error) {
+      console.error('Failed to delete workflow email:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update email read status in workflow DB
+   */
+  async updateEmailRead(emailId: number, isRead: boolean): Promise<void> {
+    try {
+      await apiClient.patch(`/api/emails/${emailId}/read`, { isRead });
+    } catch (error) {
+      console.error('Failed to update read status:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update email starred status in workflow DB
+   */
+  async updateEmailStarred(emailId: number, isStarred: boolean): Promise<void> {
+    try {
+      await apiClient.patch(`/api/emails/${emailId}/starred`, { isStarred });
+    } catch (error) {
+      console.error('Failed to update starred status:', error);
       throw error;
     }
   },

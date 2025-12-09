@@ -1,5 +1,5 @@
 import type { Email } from '@/types/email';
-import { Reply, ReplyAll, Forward, Trash2, MailOpen, Star, Download, Mail, Inbox, Trash, ChevronDown } from 'lucide-react';
+import { Reply, ReplyAll, Forward, Trash2, MailOpen, Star, Download, Mail, Inbox, Trash, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { SnoozeModal } from './SnoozeModal';
 
 interface EmailDetailProps {
   email: Email | null;
@@ -29,6 +30,8 @@ interface EmailDetailProps {
   onMoveToInbox?: () => void;
   onToggleRead: () => void;
   onToggleStar: () => void;
+  onSnooze?: (emailId: string, snoozeDate: Date) => void;
+  onUnsnooze?: (workflowEmailId: number) => void;
 }
 
 function RecipientsList({ 
@@ -121,8 +124,11 @@ export function EmailDetail({
   onMoveToInbox,
   onToggleRead,
   onToggleStar,
+  onSnooze,
+  onUnsnooze,
 }: EmailDetailProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSnoozeModal, setShowSnoozeModal] = useState(false);
 
   if (!email) {
     return (
@@ -189,6 +195,13 @@ export function EmailDetail({
       .slice(0, 2);
   };
 
+  const handleSnooze = (snoozeDate: Date) => {
+    if (onSnooze && email) {
+      onSnooze(email.id, snoozeDate);
+      setShowSnoozeModal(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Action Bar */}
@@ -205,6 +218,48 @@ export function EmailDetail({
           <Forward className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span className="hidden md:inline">Forward</span>
         </Button>
+        
+        {mailboxId === 'SNOOZED' ? (
+          <Button
+            onClick={() => {
+              // console.log('Unsnooze button clicked');
+              // console.log('Email object:', email);
+              // console.log('workflowEmailId:', email?.workflowEmailId);
+              // console.log('onUnsnooze function:', onUnsnooze);
+              
+              if (onUnsnooze && email && email.workflowEmailId) {
+                // console.log('Calling onUnsnooze with ID:', email.workflowEmailId);
+                onUnsnooze(email.workflowEmailId);
+              } else {
+                console.error('Cannot unsnooze:', {
+                  hasCallback: !!onUnsnooze,
+                  hasEmail: !!email,
+                  hasWorkflowId: !!email?.workflowEmailId,
+                  email: email
+                });
+                toast.error(`Unable to unsnooze: ${!email?.workflowEmailId ? 'missing workflow ID' : 'missing callback'}`);
+              }
+            }}
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+          >
+            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
+            <span className="hidden md:inline">Unsnooze</span>
+          </Button>
+        ) : (
+          onSnooze && (
+            <Button 
+              onClick={() => setShowSnoozeModal(true)} 
+              variant="outline" 
+              size="sm" 
+              className="gap-1.5"
+            >
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden md:inline">Snooze</span>
+            </Button>
+          )
+        )}
         
         {mailboxId === 'TRASH' ? (
           <>
@@ -523,6 +578,14 @@ export function EmailDetail({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Snooze Modal */}
+      <SnoozeModal
+        open={showSnoozeModal}
+        onClose={() => setShowSnoozeModal(false)}
+        onSnooze={handleSnooze}
+        emailSubject={email?.subject}
+      />
     </div>
   );
 }
