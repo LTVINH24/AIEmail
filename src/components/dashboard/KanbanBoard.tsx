@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Email, Mailbox } from '@/types/email';
 import { KanbanColumn } from './KanbanColumn';
+import { SnoozeModal } from './SnoozeModal';
 import { emailService } from '@/services/emailService';
 import { toast } from 'sonner';
 import {
@@ -25,6 +26,9 @@ interface KanbanBoardProps {
   selectedEmailId: string | null;
   onEmailSelect: (emailId: string) => void;
   onEmailMove: (emailId: string, targetMailboxId: string, sourceMailboxId: string) => Promise<void>;
+  onSnooze: (emailId: string, snoozeDate: Date) => Promise<void>;
+  onUnsnooze: (workflowEmailId: number) => Promise<void>;
+  onColumnsChange?: (columnIds: string[]) => void;
 }
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
@@ -36,6 +40,9 @@ export function KanbanBoard({
   selectedEmailId,
   onEmailSelect,
   onEmailMove,
+  onSnooze,
+  onUnsnooze,
+  onColumnsChange,
 }: KanbanBoardProps) {
   const [draggedEmailId, setDraggedEmailId] = useState<string | null>(null);
   const [draggedSourceColumn, setDraggedSourceColumn] = useState<string | null>(null);
@@ -44,15 +51,54 @@ export function KanbanBoard({
   const [columnPages, setColumnPages] = useState<Record<string, { pageToken?: string; hasMore: boolean }>>({});
   const [loadingColumns, setLoadingColumns] = useState<Set<string>>(new Set());
   const [columnToDelete, setColumnToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isSnoozeModalOpen, setIsSnoozeModalOpen] = useState(false);
+  const [emailToSnooze, setEmailToSnooze] = useState<{ id: string; subject: string; sourceColumn: string } | null>(null);
+  
+  const [selectedColumnIds, setSelectedColumnIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('kanban-selected-columns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return new Set(parsed);
+      }
+    } catch (error) {
+      console.error('Failed to load kanban columns from localStorage:', error);
+    }
+    return new Set(['INBOX']);
+  });
 
-  // Initialize columns from mailboxes
   useEffect(() => {
-    const customLabels = mailboxes
-      .filter(m => m.type === 'user' && !['INBOX'].includes(m.id))
+    const selectedColumns = mailboxes
+      .filter(m => selectedColumnIds.has(m.id))
       .map(m => ({ id: m.id, name: m.name, icon: m.icon }));
     
-    setColumns([...DEFAULT_COLUMNS, ...customLabels]);
-  }, [mailboxes]);
+    setColumns(selectedColumns);
+  }, [mailboxes, selectedColumnIds]);
+
+  useEffect(() => {
+    if (onColumnsChange) {
+      onColumnsChange(Array.from(selectedColumnIds));
+    }
+  }, [selectedColumnIds, onColumnsChange]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('kanban-selected-columns', JSON.stringify(Array.from(selectedColumnIds)));
+    } catch (error) {
+      console.error('Failed to save kanban columns to localStorage:', error);
+    }
+  }, [selectedColumnIds]);
+
+  const addColumn = (columnId: string) => {
+    setSelectedColumnIds(prev => new Set([...prev, columnId]));
+  };
+
+  useEffect(() => {
+    (window as typeof window & { __kanbanAddColumn?: (id: string) => void }).__kanbanAddColumn = addColumn;
+    return () => {
+      delete (window as typeof window & { __kanbanAddColumn?: (id: string) => void }).__kanbanAddColumn;
+    };
+  }, []);
 
   // Load emails for each column
   useEffect(() => {
@@ -142,6 +188,66 @@ export function KanbanBoard({
       return;
     }
     
+    console.log('handleDrop called:', { draggedEmailId, draggedSourceColumn, targetColumnId });
+    
+    if (targetColumnId === 'SNOOZED') {
+      console.log('Dropping into SNOOZED, looking for email:', draggedEmailId);
+      console.log('Available emails in columns:', Object.keys(columnEmails).map(col => ({
+        column: col,
+        emails: columnEmails[col]?.map(e => ({ id: e.id, threadId: e.threadId, subject: e.subject }))
+      })));
+      
+      const email = Object.values(columnEmails)
+        .flat()
+        .find(e => e.id === draggedEmailId || e.threadId === draggedEmailId);
+      
+      console.log('Found email:', email);
+      
+      if (email) {
+        setEmailToSnooze({
+          id: draggedEmailId,
+          subject: email.subject,
+          sourceColumn: draggedSourceColumn,
+        });
+        setIsSnoozeModalOpen(true);
+        console.log('Opening snooze modal');
+      } else {
+        console.error('Email not found for snooze');
+        toast.error('Could not find email to snooze');
+      }
+      setDraggedEmailId(null);
+      setDraggedSourceColumn(null);
+      return;
+    }
+    
+    if (draggedSourceColumn === 'SNOOZED') {
+      console.log('Dragging from SNOOZED to', targetColumnId);
+      const email = columnEmails[draggedSourceColumn]?.find(e => e.id === draggedEmailId || e.threadId === draggedEmailId);
+      console.log('Found email:', email);
+      console.log('Email workflowEmailId:', email?.workflowEmailId);
+      
+      if (email?.workflowEmailId) {
+        try {
+          console.log('Calling onUnsnooze with workflowEmailId:', email.workflowEmailId);
+          await onUnsnooze(email.workflowEmailId);
+          toast.success('Email unsnoozed successfully');
+          await loadColumnEmails(draggedSourceColumn, true);
+          await loadColumnEmails(targetColumnId, true);
+        } catch (error) {
+          console.error('Failed to unsnooze email:', error);
+          toast.error('Failed to unsnooze email');
+        }
+      } else {
+        console.error('Email does not have workflowEmailId');
+        console.error('Email object:', JSON.stringify(email, null, 2));
+        console.error('All emails in SNOOZED:', JSON.stringify(columnEmails[draggedSourceColumn], null, 2));
+        toast.error('Cannot unsnooze: Email data is invalid');
+      }
+      setDraggedEmailId(null);
+      setDraggedSourceColumn(null);
+      return;
+    }
+    
     try {
       await onEmailMove(draggedEmailId, targetColumnId, draggedSourceColumn);
       // Refresh both columns
@@ -172,8 +278,20 @@ export function KanbanBoard({
     if (!columnToDelete) return;
 
     try {
-      await emailService.deleteLabel(columnToDelete.id);
-      toast.success('Column removed successfully');
+      const mailbox = mailboxes.find(m => m.id === columnToDelete.id);
+      
+      if (mailbox?.type === 'user') {
+        await emailService.deleteLabel(columnToDelete.id);
+        toast.success('Label deleted successfully');
+      } else {
+        toast.success('Column removed from board');
+      }
+      
+      setSelectedColumnIds(prev => {
+        const updated = new Set(prev);
+        updated.delete(columnToDelete.id);
+        return updated;
+      });
       
       // Remove column from state
       setColumns(prev => prev.filter(col => col.id !== columnToDelete.id));
@@ -192,12 +310,27 @@ export function KanbanBoard({
     }
   };
 
+  const handleSnoozeConfirm = async (snoozeDate: Date) => {
+    if (!emailToSnooze) return;
+
+    try {
+      await onSnooze(emailToSnooze.id, snoozeDate);
+      await loadColumnEmails(emailToSnooze.sourceColumn, true);
+      await loadColumnEmails('SNOOZED', true);
+    } catch (error) {
+      console.error('Failed to snooze email:', error);
+    } finally {
+      setIsSnoozeModalOpen(false);
+      setEmailToSnooze(null);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full gap-4 p-4" style={{ minWidth: '100%' }}>
           {columns.map((column) => {
-            const isDefaultColumn = ['INBOX', 'TODO', 'DONE'].includes(column.id);
+            const isDefaultColumn = ['INBOX'].includes(column.id);
             return (
               <KanbanColumn
                 key={column.id}
@@ -237,6 +370,16 @@ export function KanbanBoard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SnoozeModal
+        open={isSnoozeModalOpen}
+        onClose={() => {
+          setIsSnoozeModalOpen(false);
+          setEmailToSnooze(null);
+        }}
+        onSnooze={handleSnoozeConfirm}
+        emailSubject={emailToSnooze?.subject}
+      />
     </div>
   );
 }

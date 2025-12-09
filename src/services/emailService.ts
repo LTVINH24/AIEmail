@@ -16,6 +16,7 @@ import type {
   EmailWorkflowResponse,
   EmailStatus,
 } from '../types/email';
+import { toast } from 'sonner';
 
 const MAIN_LABEL_IDS = [
   'INBOX',
@@ -294,6 +295,19 @@ export const emailService = {
         console.error('Invalid threadId:', threadId);
         return null;
       }
+      
+      let cachedWorkflowEmailId: number | undefined = undefined;
+      try {
+        const workflowEmails = await apiClient.get<EmailWorkflowResponse[]>('/api/emails');
+        const workflowEmail = workflowEmails.find(e => e.threadId === threadId);
+        if (workflowEmail) {
+          cachedWorkflowEmailId = workflowEmail.id;
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to fetch workflow email');
+        console.warn('Failed to fetch workflow email for threadId:', threadId);
+      }
+      
       const thread = await apiClient.get<ThreadDetailResponse>(`/emails/${threadId}`);
       
       if (!thread.messages || thread.messages.length === 0) {
@@ -352,7 +366,7 @@ export const emailService = {
         })),
         mailboxId: 'INBOX',
         messages,
-        workflowEmailId: undefined, 
+        workflowEmailId: cachedWorkflowEmailId, 
       };
     } catch (error) {
       console.error('Failed to fetch email:', error);

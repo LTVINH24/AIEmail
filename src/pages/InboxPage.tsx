@@ -12,7 +12,7 @@ import { KanbanBoard } from '@/components/dashboard/KanbanBoard';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -43,9 +43,8 @@ export function InboxPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showEmailDetail, setShowEmailDetail] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
-  const [isCreateLabelDialogOpen, setIsCreateLabelDialogOpen] = useState(false);
-  const [newLabelName, setNewLabelName] = useState('');
-  const [isCreatingLabel, setIsCreatingLabel] = useState(false);
+  const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
+  const [selectedLabelForColumn, setSelectedLabelForColumn] = useState('');
   
   const [isLoadingMailboxes, setIsLoadingMailboxes] = useState(true);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
@@ -605,22 +604,16 @@ export function InboxPage() {
     }
   };
 
-  const handleCreateLabel = async () => {
-    if (!newLabelName.trim()) return;
-
-    setIsCreatingLabel(true);
-    try {
-      await emailService.createLabel(newLabelName.trim());
-      toast.success(`Label "${newLabelName}" created successfully`);
-      setNewLabelName('');
-      setIsCreateLabelDialogOpen(false);
-      await loadMailboxes();
-    } catch (error) {
-      console.error('Failed to create label:', error);
-      toast.error('Failed to create label');
-    } finally {
-      setIsCreatingLabel(false);
+  const handleAddColumn = () => {
+    if (!selectedLabelForColumn) return;
+    
+    if ((window as typeof window & { __kanbanAddColumn?: (id: string) => void }).__kanbanAddColumn) {
+      (window as typeof window & { __kanbanAddColumn?: (id: string) => void }).__kanbanAddColumn!(selectedLabelForColumn);
     }
+    
+    setSelectedLabelForColumn('');
+    setIsAddColumnDialogOpen(false);
+    toast.success('Column added to Kanban board');
   };
 
   const handleLogout = async () => {
@@ -749,7 +742,7 @@ export function InboxPage() {
             <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
               <h2 className="text-lg font-semibold">Kanban Board</h2>
               <div className="flex items-center gap-2">
-                <Dialog open={isCreateLabelDialogOpen} onOpenChange={setIsCreateLabelDialogOpen}>
+                <Dialog open={isAddColumnDialogOpen} onOpenChange={setIsAddColumnDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Plus className="h-4 w-4 mr-2" />
@@ -758,37 +751,51 @@ export function InboxPage() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Create New Label</DialogTitle>
+                      <DialogTitle>Add Column to Kanban Board</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 pt-4">
                       <div className="space-y-2">
-                        <Input
-                          placeholder="Label name (e.g., In Progress, Review)"
-                          value={newLabelName}
-                          onChange={(e) => setNewLabelName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleCreateLabel();
-                            }
-                          }}
-                        />
+                        <Label htmlFor="label-select" className="text-sm font-medium">
+                          Select a label to add as column
+                        </Label>
+                        <select
+                          id="label-select"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          value={selectedLabelForColumn}
+                          onChange={(e) => setSelectedLabelForColumn(e.target.value)}
+                        >
+                          <option value="">Choose a column...</option>
+                          {[
+                            { id: 'TO_DO', name: 'To Do' },
+                            { id: 'IN_PROGRESS', name: 'In Progress' },
+                            { id: 'DONE', name: 'Done' },
+                            { id: 'SNOOZED', name: 'Snoozed' },
+                          ].map(column => (
+                            <option key={column.id} value={column.id}>
+                              {column.name}
+                            </option>
+                          ))
+                          }
+                        </select>
+                        <p className="text-xs text-muted-foreground">
+                          Available workflow columns. INBOX is the default column.
+                        </p>
                       </div>
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
                           onClick={() => {
-                            setIsCreateLabelDialogOpen(false);
-                            setNewLabelName('');
+                            setIsAddColumnDialogOpen(false);
+                            setSelectedLabelForColumn('');
                           }}
-                          disabled={isCreatingLabel}
                         >
                           Cancel
                         </Button>
                         <Button
-                          onClick={handleCreateLabel}
-                          disabled={!newLabelName.trim() || isCreatingLabel}
+                          onClick={handleAddColumn}
+                          disabled={!selectedLabelForColumn}
                         >
-                          {isCreatingLabel ? 'Creating...' : 'Create'}
+                          Add Column
                         </Button>
                       </div>
                     </div>
@@ -812,6 +819,8 @@ export function InboxPage() {
                 selectedEmailId={selectedEmailId}
                 onEmailSelect={handleSelectEmail}
                 onEmailMove={handleEmailMove}
+                onSnooze={handleSnooze}
+                onUnsnooze={handleUnsnooze}
               />
             </div>
             {/* Email Detail Modal/Sheet */}
