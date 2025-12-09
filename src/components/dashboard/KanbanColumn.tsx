@@ -1,23 +1,33 @@
 import { useState } from 'react';
-import type { Email, Mailbox } from '@/types/email';
+import type { Email } from '@/types/email';
 import { KanbanCard } from './KanbanCard';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import * as LucideIcons from 'lucide-react';
 
+interface KanbanColumn {
+  id: string;
+  name: string;
+  icon: string;
+}
+
 interface KanbanColumnProps {
-  mailbox: Mailbox;
+  column: KanbanColumn;
   emails: Email[];
   selectedEmailId: string | null;
   draggedEmailId: string | null;
   onEmailSelect: (emailId: string) => void;
   onDragStart: (emailId: string) => void;
   onDragEnd: () => void;
-  onDrop: (targetMailboxId: string) => Promise<void>;
+  onDrop: (targetColumnId: string) => Promise<void>;
+  hasMore: boolean;
+  isLoading: boolean;
+  onLoadMore: () => void;
 }
 
 export function KanbanColumn({
-  mailbox,
+  column,
   emails,
   selectedEmailId,
   draggedEmailId,
@@ -25,6 +35,9 @@ export function KanbanColumn({
   onDragStart,
   onDragEnd,
   onDrop,
+  hasMore,
+  isLoading,
+  onLoadMore,
 }: KanbanColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -40,11 +53,11 @@ export function KanbanColumn({
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    await onDrop(mailbox.id);
+    await onDrop(column.id);
   };
 
   // Get the icon component dynamically
-  const IconComponent = (LucideIcons as any)[mailbox.icon] || LucideIcons.Mail;
+  const IconComponent = (LucideIcons as any)[column.icon] || LucideIcons.Mail;
 
   return (
     <div
@@ -59,7 +72,7 @@ export function KanbanColumn({
       {/* Column Header */}
       <div className="flex items-center gap-2 p-4 border-b bg-background/50">
         <IconComponent className="h-5 w-5 text-muted-foreground" />
-        <h3 className="font-semibold">{mailbox.name}</h3>
+        <h3 className="font-semibold">{column.name}</h3>
         <span className="ml-auto text-sm text-muted-foreground">
           {emails.length}
         </span>
@@ -70,20 +83,33 @@ export function KanbanColumn({
         <div className="space-y-2">
           {emails.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-              No emails
+              {isLoading ? 'Loading...' : 'No emails'}
             </div>
           ) : (
-            emails.map((email) => (
-              <KanbanCard
-                key={email.id}
-                email={email}
-                isSelected={email.id === selectedEmailId}
-                isDragging={email.id === draggedEmailId}
-                onSelect={() => onEmailSelect(email.id)}
-                onDragStart={() => onDragStart(email.id)}
-                onDragEnd={onDragEnd}
-              />
-            ))
+            <>
+              {emails.map((email) => (
+                <KanbanCard
+                  key={email.id}
+                  email={email}
+                  isSelected={email.id === selectedEmailId}
+                  isDragging={email.id === draggedEmailId}
+                  onSelect={() => onEmailSelect(email.id)}
+                  onDragStart={() => onDragStart(email.id)}
+                  onDragEnd={onDragEnd}
+                />
+              ))}
+              {hasMore && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={onLoadMore}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Loading...' : 'Load More'}
+                </Button>
+              )}
+            </>
           )}
         </div>
       </ScrollArea>

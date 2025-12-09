@@ -433,42 +433,21 @@ export function InboxPage() {
     }
   };
 
-  const handleEmailMove = async (emailId: string, targetMailboxId: string) => {
+  const handleEmailMove = async (emailId: string, targetMailboxId: string, sourceMailboxId: string) => {
     const email = emails.find(e => e.id === emailId);
     if (!email) return;
 
     try {
-      // Get current labels by finding the source mailbox
-      const sourceMailbox = mailboxes.find(m => m.id === email.mailboxId || m.id === selectedMailboxId);
-      const removeLabelIds: string[] = sourceMailbox ? [sourceMailbox.id] : [];
-      
       await emailService.modifyLabels({
         threadId: email.threadId,
         addLabelIds: [targetMailboxId],
-        removeLabelIds: removeLabelIds,
+        removeLabelIds: [sourceMailboxId],
       });
-      
-      // Update local state
-      setEmails(prev => prev.map(e => 
-        e.id === emailId ? { ...e, mailboxId: targetMailboxId } : e
-      ));
       
       toast.success('Email moved successfully');
     } catch (error) {
       console.error('Failed to move email:', error);
       toast.error('Failed to move email');
-      throw error;
-    }
-  };
-
-  const handleCreateLabel = async (labelName: string) => {
-    try {
-      await emailService.createLabel(labelName);
-      toast.success(`Label "${labelName}" created successfully`);
-      await loadMailboxes();
-    } catch (error) {
-      console.error('Failed to create label:', error);
-      toast.error('Failed to create label');
       throw error;
     }
   };
@@ -580,24 +559,24 @@ export function InboxPage() {
 
       {/* Desktop/Tablet Layout */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Column 1: Mailboxes (Desktop only) */}
-        <div className="hidden lg:block w-64">
-          <MailboxList
-            mailboxes={mailboxes}
-            selectedMailboxId={selectedMailboxId}
-            onSelectMailbox={handleSelectMailbox}
-            isLoading={isLoadingMailboxes}
-          />
-        </div>
+        {/* Column 1: Mailboxes (Desktop only, hidden in Kanban mode) */}
+        {viewMode !== 'kanban' && (
+          <div className="hidden lg:block w-64">
+            <MailboxList
+              mailboxes={mailboxes}
+              selectedMailboxId={selectedMailboxId}
+              onSelectMailbox={handleSelectMailbox}
+              isLoading={isLoadingMailboxes}
+            />
+          </div>
+        )}
 
         {/* Kanban View (Full width when active) */}
         {viewMode === 'kanban' ? (
           <div className="flex-1 min-w-0 flex flex-col">
             {/* View Toggle Bar */}
             <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
-              <h2 className="text-lg font-semibold">
-                {mailboxes.find(m => m.id === selectedMailboxId)?.name || 'Inbox'}
-              </h2>
+              <h2 className="text-lg font-semibold">Kanban Board</h2>
               <Button
                 variant="outline"
                 size="sm"
@@ -608,30 +587,35 @@ export function InboxPage() {
                 List View
               </Button>
             </div>
-            {/* Mobile view for Kanban - show full screen */}
-            <div className="flex-1 min-h-0 lg:hidden">
+            {/* Kanban Board */}
+            <div className="flex-1 min-h-0">
               <KanbanBoard
                 mailboxes={mailboxes}
-                emails={emails}
                 selectedEmailId={selectedEmailId}
                 onEmailSelect={handleSelectEmail}
                 onEmailMove={handleEmailMove}
-                onCreateLabel={handleCreateLabel}
-                onRefresh={() => loadEmails(true)}
+                onRefresh={loadMailboxes}
               />
             </div>
-            {/* Desktop view for Kanban */}
-            <div className="hidden lg:block flex-1 min-h-0">
-              <KanbanBoard
-                mailboxes={mailboxes}
-                emails={emails}
-                selectedEmailId={selectedEmailId}
-                onEmailSelect={handleSelectEmail}
-                onEmailMove={handleEmailMove}
-                onCreateLabel={handleCreateLabel}
-                onRefresh={() => loadEmails(true)}
-              />
-            </div>
+            {/* Email Detail Modal/Sheet */}
+            {selectedEmail && (
+              <Sheet open={!!selectedEmailId} onOpenChange={(open) => !open && setSelectedEmailId(null)}>
+                <SheetContent side="right" className="w-full sm:max-w-2xl p-0">
+                  <EmailDetail
+                    email={selectedEmail}
+                    mailboxId={selectedMailboxId}
+                    onReply={handleReply}
+                    onReplyAll={handleReplyAll}
+                    onForward={handleForward}
+                    onDelete={() => selectedEmailId && handleDelete([selectedEmailId])}
+                    onPermanentDelete={() => selectedEmailId && handlePermanentDelete([selectedEmailId])}
+                    onMoveToInbox={() => selectedEmailId && handleMoveToInbox([selectedEmailId])}
+                    onToggleRead={() => selectedEmailId && handleToggleRead([selectedEmailId])}
+                    onToggleStar={() => selectedEmailId && handleToggleStar(selectedEmailId)}
+                  />
+                </SheetContent>
+              </Sheet>
+            )}
           </div>
         ) : (
           <>

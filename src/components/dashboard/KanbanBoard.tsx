@@ -1,58 +1,131 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Email, Mailbox } from '@/types/email';
 import { KanbanColumn } from './KanbanColumn';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
+import { emailService } from '@/services/emailService';
+import { toast } from 'sonner';
+
+interface KanbanColumn {
+  id: string;
+  name: string;
+  icon: string;
+}
 
 interface KanbanBoardProps {
   mailboxes: Mailbox[];
-  emails: Email[];
   selectedEmailId: string | null;
   onEmailSelect: (emailId: string) => void;
-  onEmailMove: (emailId: string, targetMailboxId: string) => Promise<void>;
-  onCreateLabel: (labelName: string) => Promise<void>;
+  onEmailMove: (emailId: string, targetMailboxId: string, sourceMailboxId: string) => Promise<void>;
   onRefresh: () => void;
 }
 
+const DEFAULT_COLUMNS: KanbanColumn[] = [
+  { id: 'INBOX', name: 'Inbox', icon: 'Inbox' },
+  { id: 'TODO', name: 'To Do', icon: 'CheckSquare' },
+  { id: 'DONE', name: 'Done', icon: 'CheckCircle' },
+];
+
 export function KanbanBoard({
   mailboxes,
-  emails,
   selectedEmailId,
   onEmailSelect,
   onEmailMove,
-  onCreateLabel,
   onRefresh,
 }: KanbanBoardProps) {
   const [draggedEmailId, setDraggedEmailId] = useState<string | null>(null);
+  const [draggedSourceColumn, setDraggedSourceColumn] = useState<string | null>(null);
   const [newLabelName, setNewLabelName] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreatingLabel, setIsCreatingLabel] = useState(false);
+  const [columns, setColumns] = useState<KanbanColumn[]>(DEFAULT_COLUMNS);
+  const [columnEmails, setColumnEmails] = useState<Record<string, Email[]>>({});
+  const [columnPages, setColumnPages] = useState<Record<string, { pageToken?: string; hasMore: boolean }>>({});
+  const [loadingColumns, setLoadingColumns] = useState<Set<string>>(new Set());
 
-  // Filter to show main mailboxes and custom labels (exclude system categories)
-  const kanbanColumns = mailboxes.filter(
-    (m) => m.isMain || m.type === 'custom'
-  );
+  // Initialize columns from mailboxes
+  useEffect(() => {
+    const customLabels = mailboxes
+      .filter(m => m.type === 'custom' && !['INBOX', 'TODO', 'DONE'].includes(m.id))
+      .map(m => ({ id: m.id, name: m.name, icon: m.icon }));
+    
+    setColumns([...DEFAULT_COLUMNS, ...customLabels]);
+  }, [mailboxes]);
 
-  const handleDragStart = (emailId: string) => {
+  // Load emails for each column
+  useEffect(() => {
+    loadAllColumns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columns]);
+
+  const loadAllColumns = async () => {
+    for (const column of columns) {
+      await loadColumnEmails(column.id, true);
+    }
+  };
+
+  const loadColumnEmails = async (columnId: string, reset: boolean = false) => {
+    if (loadingColumns.has(columnId)) return;
+
+    setLoadingColumns(prev => new Set([...prev, columnId]));
+
+    try {
+      const pageToken = reset ? undefined : columnPages[columnId]?.pageToken;
+      const response = await emailService.getEmailsByMailbox(columnId, 3, pageToken);
+      
+      setColumnEmails(prev => ({
+        ...prev,
+        [columnId]: reset ? response.emails : [...(prev[columnId] || []), ...response.emails]
+      }));
+
+      setColumnPages(prev => ({
+        ...prev,
+        [columnId]: {
+          pageToken: response.nextPageToken,
+          hasMore: !!response.nextPageToken
+        }
+      }));
+    } catch (error) {
+      console.error(`Failed to load emails for ${columnId}:`, error);
+    } finally {
+      setLoadingColumns(prev => {
+        const next = new Set(prev);
+        next.delete(columnId);
+        return next;
+      });
+    }
+  };
+
+  const handleDragStart = (emailId: string, sourceColumnId: string) => {
     setDraggedEmailId(emailId);
+    setDraggedSourceColumn(sourceColumnId);
   };
 
   const handleDragEnd = () => {
     setDraggedEmailId(null);
+    setDraggedSourceColumn(null);
   };
 
-  const handleDrop = async (targetMailboxId: string) => {
-    if (!draggedEmailId) return;
+  const handleDrop = async (targetColumnId: string) => {
+    if (!draggedEmailId || !draggedSourceColumn) return;
+    if (draggedSourceColumn === targetColumnId) {
+      setDraggedEmailId(null);
+      setDraggedSourceColumn(null);
+      return;
+    }
     
     try {
-      await onEmailMove(draggedEmailId, targetMailboxId);
-      onRefresh();
+      await onEmailMove(draggedEmailId, targetColumnId, draggedSourceColumn);
+      // Refresh both columns
+      await loadColumnEmails(draggedSourceColumn, true);
+      await loadColumnEmails(targetColumnId, true);
     } catch (error) {
       console.error('Failed to move email:', error);
     } finally {
       setDraggedEmailId(null);
+      setDraggedSourceColumn(null);
     }
   };
 
@@ -61,29 +134,26 @@ export function KanbanBoard({
 
     setIsCreatingLabel(true);
     try {
-      await onCreateLabel(newLabelName.trim());
+      const newLabel = await emailService.createLabel(newLabelName.trim());
+      toast.success(`Label "${newLabelName}" created successfully`);
+      
+      // Add new column
+      const newColumn: KanbanColumn = {
+        id: newLabel.id,
+        name: newLabel.name,
+        icon: 'Tag'
+      };
+      setColumns(prev => [...prev, newColumn]);
+      
       setNewLabelName('');
       setIsCreateDialogOpen(false);
       onRefresh();
     } catch (error) {
       console.error('Failed to create label:', error);
+      toast.error('Failed to create label');
     } finally {
       setIsCreatingLabel(false);
     }
-  };
-
-  const getEmailsForMailbox = (mailboxId: string): Email[] => {
-    // For INBOX, show emails that are in INBOX mailbox
-    // For other mailboxes, we'll need to fetch them separately or track labels better
-    // For now, we'll show all emails in INBOX by default, and filter based on mailboxId for others
-    return emails.filter((email) => {
-      // If the email has a mailboxId set, use that for filtering
-      if (email.mailboxId) {
-        return email.mailboxId === mailboxId;
-      }
-      // Otherwise, show in INBOX by default
-      return mailboxId === 'INBOX';
-    });
   };
 
   return (
@@ -139,17 +209,20 @@ export function KanbanBoard({
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full gap-4 p-4 min-w-max">
-          {kanbanColumns.map((mailbox) => (
+          {columns.map((column) => (
             <KanbanColumn
-              key={mailbox.id}
-              mailbox={mailbox}
-              emails={getEmailsForMailbox(mailbox.id)}
+              key={column.id}
+              column={column}
+              emails={columnEmails[column.id] || []}
               selectedEmailId={selectedEmailId}
               draggedEmailId={draggedEmailId}
               onEmailSelect={onEmailSelect}
-              onDragStart={handleDragStart}
+              onDragStart={(emailId) => handleDragStart(emailId, column.id)}
               onDragEnd={handleDragEnd}
               onDrop={handleDrop}
+              hasMore={columnPages[column.id]?.hasMore || false}
+              isLoading={loadingColumns.has(column.id)}
+              onLoadMore={() => loadColumnEmails(column.id, false)}
             />
           ))}
         </div>
