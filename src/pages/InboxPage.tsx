@@ -410,8 +410,15 @@ export function InboxPage() {
 
   const handleSnooze = async (emailId: string, snoozeDate: Date) => {
     try {
-      const email = emails.find(e => e.id === emailId);
-      if (!email) return;
+           
+      const email = emails.find(e => e.id === emailId || e.threadId === emailId);
+      // console.log('Found email:', email);
+      
+      if (!email) {
+        console.error('Email not found for snooze');
+        toast.error('Could not find email to snooze');
+        return;
+      }
 
       await emailService.snoozeEmailByThreadId(email.threadId, snoozeDate);
       
