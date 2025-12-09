@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +15,12 @@ import {
   User,
   Mail,
   LogOut,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  Tag,
+  Bell,
+  MessageSquare,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -31,6 +38,7 @@ interface MailboxListProps {
   mailboxes: Mailbox[];
   selectedMailboxId: string;
   onSelectMailbox: (mailboxId: string) => void;
+  isLoading?: boolean;
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -43,11 +51,19 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Briefcase,
   User,
   Mail,
+  Users,
+  Tag,
+  Bell,
+  MessageSquare,
 };
 
-export function MailboxList({ mailboxes, selectedMailboxId, onSelectMailbox }: MailboxListProps) {
+export function MailboxList({ mailboxes, selectedMailboxId, onSelectMailbox, isLoading = false }: MailboxListProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [showMore, setShowMore] = useState(false);
+
+  const mainMailboxes = mailboxes.filter(m => m.isMain);
+  const secondaryMailboxes = mailboxes.filter(m => !m.isMain);
 
   const handleLogout = async () => {
     try {
@@ -75,8 +91,15 @@ export function MailboxList({ mailboxes, selectedMailboxId, onSelectMailbox }: M
         <h2 className="font-semibold text-lg">Mailboxes</h2>
       </div>
       <nav className="flex-1 overflow-y-auto p-2">
-        <ul className="space-y-1">
-          {mailboxes.map((mailbox) => {
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-10 bg-gray-200 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <ul className="space-y-1">
+            {mainMailboxes.map((mailbox) => {
             const Icon = iconMap[mailbox.icon] || Mail;
             const isSelected = mailbox.id === selectedMailboxId;
             
@@ -111,7 +134,60 @@ export function MailboxList({ mailboxes, selectedMailboxId, onSelectMailbox }: M
               </li>
             );
           })}
-        </ul>
+
+          {secondaryMailboxes.length > 0 && (
+            <>
+              <li>
+                <button
+                  onClick={() => setShowMore(!showMore)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {showMore ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    <span>{showMore ? 'Show less' : 'More'}</span>
+                  </div>
+                </button>
+              </li>
+
+              {showMore && secondaryMailboxes.map((mailbox) => {
+                const Icon = iconMap[mailbox.icon] || Mail;
+                const isSelected = mailbox.id === selectedMailboxId;
+                
+                return (
+                  <li key={mailbox.id}>
+                    <button
+                      onClick={() => onSelectMailbox(mailbox.id)}
+                      className={cn(
+                        'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
+                        isSelected
+                          ? 'bg-blue-100 text-blue-900 font-medium'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      )}
+                      aria-label={`${mailbox.name} mailbox${mailbox.unreadCount ? `, ${mailbox.unreadCount} unread` : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-4 w-4" />
+                        <span>{mailbox.name}</span>
+                      </div>
+                      {mailbox.unreadCount ? (
+                        <Badge 
+                          variant="secondary" 
+                          className={cn(
+                            'ml-auto',
+                            isSelected ? 'bg-blue-200 text-blue-900' : ''
+                          )}
+                        >
+                          {mailbox.unreadCount}
+                        </Badge>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </>
+          )}
+          </ul>
+        )}
       </nav>
       
       {/* User Profile Section */}
