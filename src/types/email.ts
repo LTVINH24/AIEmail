@@ -68,7 +68,7 @@ export interface Mailbox {
   name: string;
   icon: string;
   unreadCount?: number;
-  type: 'inbox' | 'starred' | 'sent' | 'drafts' | 'archive' | 'trash' | 'spam' | 'custom' | 'system';
+  type: 'inbox' | 'starred' | 'sent' | 'drafts' | 'archive' | 'trash' | 'spam' | 'custom' | 'system' | 'user';
   isMain?: boolean;
 }
 

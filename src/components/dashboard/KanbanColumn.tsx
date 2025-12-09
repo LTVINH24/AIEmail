@@ -4,6 +4,7 @@ import { KanbanCard } from './KanbanCard';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import * as LucideIcons from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface KanbanColumn {
   id: string;
@@ -23,6 +24,8 @@ interface KanbanColumnProps {
   hasMore: boolean;
   isLoading: boolean;
   onLoadMore: () => void;
+  onRemove?: (columnId: string) => void;
+  canRemove?: boolean;
 }
 
 export function KanbanColumn({
@@ -37,6 +40,8 @@ export function KanbanColumn({
   hasMore,
   isLoading,
   onLoadMore,
+  onRemove,
+  canRemove = false,
 }: KanbanColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -61,10 +66,10 @@ export function KanbanColumn({
   return (
     <div
       className={cn(
-        'flex flex-col flex-1 bg-muted/30 rounded-lg border transition-colors h-full',
+        'flex flex-col flex-1 bg-muted/30 rounded-lg border transition-colors h-full max-w-1/3',
         isDragOver && 'border-primary bg-primary/5'
       )}
-      style={{ minWidth: '320px' }}
+      style={{ minWidth: '320px'}}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -76,6 +81,17 @@ export function KanbanColumn({
         <span className="ml-auto text-sm text-muted-foreground">
           {emails.length}
         </span>
+        {canRemove && onRemove && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => onRemove(column.id)}
+            title="Remove column"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Cards */}

@@ -87,7 +87,7 @@ export const emailService = {
             id: label.id,
             name: LABEL_NAME_MAP[label.id] || label.name,
             icon: LABEL_ICON_MAP[label.id] || 'Mail',
-            type: this.getLabelType(label.id),
+            type: label.type === 'user' ? 'user' : this.getLabelType(label.id),
             unreadCount: label.messagesUnread || label.threadsUnread || 0,
             isMain: true,
           });
@@ -103,7 +103,7 @@ export const emailService = {
           id: label.id,
           name: LABEL_NAME_MAP[label.id] || label.name,
           icon: LABEL_ICON_MAP[label.id] || 'Tag',
-          type: this.getLabelType(label.id),
+          type: label.type === 'user' ? 'user' : this.getLabelType(label.id),
           unreadCount: label.messagesUnread || label.threadsUnread || 0,
           isMain: false,
         });
@@ -123,7 +123,7 @@ export const emailService = {
     if (labelId === 'DRAFT') return 'drafts';
     if (labelId === 'TRASH') return 'trash';
     if (labelId === 'SPAM') return 'spam';
-    return 'system';
+    return 'custom';
   },
 
   async getMailboxDetails(mailboxId: string): Promise<LabelDetailResponse> {
@@ -409,6 +409,15 @@ export const emailService = {
       return await apiClient.post<LabelResponse>('/mailboxes', { name });
     } catch (error) {
       console.error('Failed to create label:', error);
+      throw error;
+    }
+  },
+
+  async deleteLabel(labelId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/mailboxes/${labelId}`);
+    } catch (error) {
+      console.error('Failed to delete label:', error);
       throw error;
     }
   },

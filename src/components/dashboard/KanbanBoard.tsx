@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Email, Mailbox } from '@/types/email';
 import { KanbanColumn } from './KanbanColumn';
 import { emailService } from '@/services/emailService';
+import { toast } from 'sonner';
 
 interface KanbanColumn {
   id: string;
@@ -17,9 +18,7 @@ interface KanbanBoardProps {
 }
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
-  { id: 'INBOX', name: 'Inbox', icon: 'Inbox' },
-  { id: 'TODO', name: 'To Do', icon: 'CheckSquare' },
-  { id: 'DONE', name: 'Done', icon: 'CheckCircle' },
+  { id: 'INBOX', name: 'Inbox', icon: 'Inbox' }
 ];
 
 export function KanbanBoard({
@@ -38,7 +37,7 @@ export function KanbanBoard({
   // Initialize columns from mailboxes
   useEffect(() => {
     const customLabels = mailboxes
-      .filter(m => m.type === 'custom' && !['INBOX', 'TODO', 'DONE'].includes(m.id))
+      .filter(m => m.type === 'user' && !['INBOX'].includes(m.id))
       .map(m => ({ id: m.id, name: m.name, icon: m.icon }));
     
     setColumns([...DEFAULT_COLUMNS, ...customLabels]);
@@ -145,26 +144,61 @@ export function KanbanBoard({
     }
   };
 
+  const handleRemoveColumn = async (columnId: string) => {
+    // Prevent removing default columns
+    if (['INBOX', 'TODO', 'DONE'].includes(columnId)) {
+      toast.error('Cannot remove default columns');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to remove this column?')) {
+      return;
+    }
+
+    try {
+      await emailService.deleteLabel(columnId);
+      toast.success('Column removed successfully');
+      
+      // Remove column from state
+      setColumns(prev => prev.filter(col => col.id !== columnId));
+      
+      // Clear emails for this column
+      setColumnEmails(prev => {
+        const updated = { ...prev };
+        delete updated[columnId];
+        return updated;
+      });
+    } catch (error) {
+      console.error('Failed to remove column:', error);
+      toast.error('Failed to remove column');
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full gap-4 p-4" style={{ minWidth: '100%' }}>
-          {columns.map((column) => (
-            <KanbanColumn
-              key={column.id}
-              column={column}
-              emails={columnEmails[column.id] || []}
-              selectedEmailId={selectedEmailId}
-              draggedEmailId={draggedEmailId}
-              onEmailSelect={onEmailSelect}
-              onDragStart={(emailId) => handleDragStart(emailId, column.id)}
-              onDragEnd={handleDragEnd}
-              onDrop={handleDrop}
-              hasMore={columnPages[column.id]?.hasMore || false}
-              isLoading={loadingColumns.has(column.id)}
-              onLoadMore={() => loadColumnEmails(column.id, false)}
-            />
-          ))}
+          {columns.map((column) => {
+            const isDefaultColumn = ['INBOX', 'TODO', 'DONE'].includes(column.id);
+            return (
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                emails={columnEmails[column.id] || []}
+                selectedEmailId={selectedEmailId}
+                draggedEmailId={draggedEmailId}
+                onEmailSelect={onEmailSelect}
+                onDragStart={(emailId) => handleDragStart(emailId, column.id)}
+                onDragEnd={handleDragEnd}
+                onDrop={handleDrop}
+                hasMore={columnPages[column.id]?.hasMore || false}
+                isLoading={loadingColumns.has(column.id)}
+                onLoadMore={() => loadColumnEmails(column.id, false)}
+                onRemove={handleRemoveColumn}
+                canRemove={!isDefaultColumn}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
