@@ -3,6 +3,16 @@ import type { Email, Mailbox } from '@/types/email';
 import { KanbanColumn } from './KanbanColumn';
 import { emailService } from '@/services/emailService';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface KanbanColumn {
   id: string;
@@ -33,6 +43,7 @@ export function KanbanBoard({
   const [columnEmails, setColumnEmails] = useState<Record<string, Email[]>>({});
   const [columnPages, setColumnPages] = useState<Record<string, { pageToken?: string; hasMore: boolean }>>({});
   const [loadingColumns, setLoadingColumns] = useState<Set<string>>(new Set());
+  const [columnToDelete, setColumnToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Initialize columns from mailboxes
   useEffect(() => {
@@ -146,31 +157,38 @@ export function KanbanBoard({
 
   const handleRemoveColumn = async (columnId: string) => {
     // Prevent removing default columns
-    if (['INBOX', 'TODO', 'DONE'].includes(columnId)) {
+    if (['INBOX'].includes(columnId)) {
       toast.error('Cannot remove default columns');
       return;
     }
 
-    if (!confirm('Are you sure you want to remove this column?')) {
-      return;
+    const column = columns.find(col => col.id === columnId);
+    if (column) {
+      setColumnToDelete({ id: column.id, name: column.name });
     }
+  };
+
+  const confirmRemoveColumn = async () => {
+    if (!columnToDelete) return;
 
     try {
-      await emailService.deleteLabel(columnId);
+      await emailService.deleteLabel(columnToDelete.id);
       toast.success('Column removed successfully');
       
       // Remove column from state
-      setColumns(prev => prev.filter(col => col.id !== columnId));
+      setColumns(prev => prev.filter(col => col.id !== columnToDelete.id));
       
       // Clear emails for this column
       setColumnEmails(prev => {
         const updated = { ...prev };
-        delete updated[columnId];
+        delete updated[columnToDelete.id];
         return updated;
       });
     } catch (error) {
       console.error('Failed to remove column:', error);
       toast.error('Failed to remove column');
+    } finally {
+      setColumnToDelete(null);
     }
   };
 
@@ -201,6 +219,24 @@ export function KanbanBoard({
           })}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!columnToDelete} onOpenChange={(open) => !open && setColumnToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Column</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove the column "{columnToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveColumn} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
