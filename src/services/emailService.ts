@@ -213,24 +213,30 @@ export const emailService = {
         `/mailboxes/${mailboxId}/emails?${params.toString()}`
       );
 
-      let emails: Email[] = (response.threads || []).map((thread) => ({
-        id: thread.id,
-        threadId: thread.id,
-        from: { name: '(Unknown)', email: '' },
-        to: [],
-        subject: thread.snippet || '(No Subject)',
-        preview: thread.snippet || '',
-        body: '',
-        htmlBody: undefined,
-        timestamp: new Date().toISOString(),
-        isRead: true, 
-        isStarred: false, 
-        hasAttachments: false,
-        attachments: [],
-        mailboxId: mailboxId,
-        messageId: undefined,
-        messages: undefined,
-      }));
+      let emails: Email[] = (response.threads || []).map((thread) => {
+        const labelIds = thread.labelIds || [];
+        const isRead = !labelIds.includes('UNREAD');
+        const isStarred = labelIds.includes('STARRED');
+        
+        return {
+          id: thread.id,
+          threadId: thread.id,
+          from: { name: '(Unknown)', email: '' },
+          to: [],
+          subject: thread.snippet || '(No Subject)',
+          preview: thread.snippet || '',
+          body: '',
+          htmlBody: undefined,
+          timestamp: new Date().toISOString(),
+          isRead,
+          isStarred,
+          hasAttachments: false,
+          attachments: [],
+          mailboxId: mailboxId,
+          messageId: undefined,
+          messages: undefined,
+        };
+      });
       
       try {
         const allWorkflowEmails = await apiClient.get<EmailWorkflowResponse[]>('/api/emails');
@@ -251,6 +257,7 @@ export const emailService = {
         emails = emails.map(email => {
           const workflowEmail = workflowEmailMap.get(email.threadId);
           if (workflowEmail) {
+            // Workflow status takes precedence over Gmail labels
             return {
               ...email,
               isRead: workflowEmail.isRead ?? email.isRead,
@@ -258,6 +265,7 @@ export const emailService = {
               workflowEmailId: workflowEmail.id, 
             };
           }
+          // No workflow email, use Gmail labels status
           return email;
         });
         
@@ -457,7 +465,7 @@ export const emailService = {
     if (request.bcc) formData.append('bcc', request.bcc);
     formData.append('subject', request.subject);
     formData.append('content', request.content);
-    formData.append('html', String(request.isHtml || false));
+    formData.append('isHtml', String(request.isHtml || false));
     
     if (request.threadId) formData.append('threadId', request.threadId);
     if (request.inReplyToMessageId) formData.append('inReplyToMessageId', request.inReplyToMessageId);

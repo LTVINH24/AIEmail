@@ -20,6 +20,7 @@ export interface LabelDetailResponse extends LabelResponse {
 export interface ThreadSummary {
   id: string;
   snippet: string;
+  labelIds?: string[];
 }
 
 export interface ListThreadResponse {

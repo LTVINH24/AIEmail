@@ -219,9 +219,11 @@ export function EmailList({
                 <div
                   key={email.id}
                   className={cn(
-                    'px-2 sm:px-4 py-2 sm:py-3 cursor-pointer transition-colors hover:bg-gray-50',
+                    'px-2 sm:px-4 py-2 sm:py-3 cursor-pointer transition-colors border-l-4',
                     isSelected && 'bg-blue-50 hover:bg-blue-50',
-                    !email.isRead && 'bg-blue-50/50'
+                    !email.isRead 
+                      ? 'bg-blue-50/30 border-l-blue-500 font-medium' 
+                      : 'border-l-transparent hover:bg-gray-50'
                   )}
                   onClick={() => onSelectEmail(email.id)}
                 >
@@ -296,12 +298,15 @@ export function EmailList({
                           <div
                             className={cn(
                               'text-xs sm:text-sm truncate mb-0.5 sm:mb-1',
-                              !email.isRead ? 'font-medium text-gray-900' : 'text-gray-600'
+                              !email.isRead ? 'font-semibold text-gray-900' : 'text-gray-600'
                             )}
                           >
                             {email.subject}
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-500 truncate">
+                          <div className={cn(
+                            'text-xs sm:text-sm truncate',
+                            !email.isRead ? 'text-gray-700 font-medium' : 'text-gray-500'
+                          )}>
                             {email.preview}
                           </div>
                         </>
