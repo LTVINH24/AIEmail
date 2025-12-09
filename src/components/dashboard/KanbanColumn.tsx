@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { Email } from '@/types/email';
 import { KanbanCard } from './KanbanCard';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import * as LucideIcons from 'lucide-react';
 
@@ -62,15 +61,16 @@ export function KanbanColumn({
   return (
     <div
       className={cn(
-        'flex flex-col w-80 shrink-0 bg-muted/30 rounded-lg border transition-colors',
+        'flex flex-col flex-1 bg-muted/30 rounded-lg border transition-colors h-full',
         isDragOver && 'border-primary bg-primary/5'
       )}
+      style={{ minWidth: '320px' }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Column Header */}
-      <div className="flex items-center gap-2 p-4 border-b bg-background/50">
+      <div className="flex items-center gap-2 p-4 border-b bg-background/50 shrink-0">
         <IconComponent className="h-5 w-5 text-muted-foreground" />
         <h3 className="font-semibold">{column.name}</h3>
         <span className="ml-auto text-sm text-muted-foreground">
@@ -79,7 +79,7 @@ export function KanbanColumn({
       </div>
 
       {/* Cards */}
-      <ScrollArea className="flex-1 p-2">
+      <div className="flex-1 overflow-y-auto p-2 min-h-0">
         <div className="space-y-2">
           {emails.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
@@ -112,7 +112,7 @@ export function KanbanColumn({
             </>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

@@ -12,6 +12,8 @@ import { KanbanBoard } from '@/components/dashboard/KanbanBoard';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, ArrowLeft, LogOut, LayoutGrid, List } from 'lucide-react';
+import { Menu, ArrowLeft, LogOut, LayoutGrid, List, Plus } from 'lucide-react';
 
 export function InboxPage() {
   const navigate = useNavigate();
@@ -41,6 +43,9 @@ export function InboxPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showEmailDetail, setShowEmailDetail] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [isCreateLabelDialogOpen, setIsCreateLabelDialogOpen] = useState(false);
+  const [newLabelName, setNewLabelName] = useState('');
+  const [isCreatingLabel, setIsCreatingLabel] = useState(false);
   
   const [isLoadingMailboxes, setIsLoadingMailboxes] = useState(true);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
@@ -452,6 +457,24 @@ export function InboxPage() {
     }
   };
 
+  const handleCreateLabel = async () => {
+    if (!newLabelName.trim()) return;
+
+    setIsCreatingLabel(true);
+    try {
+      await emailService.createLabel(newLabelName.trim());
+      toast.success(`Label "${newLabelName}" created successfully`);
+      setNewLabelName('');
+      setIsCreateLabelDialogOpen(false);
+      await loadMailboxes();
+    } catch (error) {
+      console.error('Failed to create label:', error);
+      toast.error('Failed to create label');
+    } finally {
+      setIsCreatingLabel(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -577,15 +600,62 @@ export function InboxPage() {
             {/* View Toggle Bar */}
             <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
               <h2 className="text-lg font-semibold">Kanban Board</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="gap-2"
-              >
-                <List className="h-4 w-4" />
-                List View
-              </Button>
+              <div className="flex items-center gap-2">
+                <Dialog open={isCreateLabelDialogOpen} onOpenChange={setIsCreateLabelDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Column
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Label</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Input
+                          placeholder="Label name (e.g., In Progress, Review)"
+                          value={newLabelName}
+                          onChange={(e) => setNewLabelName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleCreateLabel();
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setIsCreateLabelDialogOpen(false);
+                            setNewLabelName('');
+                          }}
+                          disabled={isCreatingLabel}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleCreateLabel}
+                          disabled={!newLabelName.trim() || isCreatingLabel}
+                        >
+                          {isCreatingLabel ? 'Creating...' : 'Create'}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="gap-2"
+                >
+                  <List className="h-4 w-4" />
+                  List View
+                </Button>
+              </div>
             </div>
             {/* Kanban Board */}
             <div className="flex-1 min-h-0">
@@ -594,7 +664,6 @@ export function InboxPage() {
                 selectedEmailId={selectedEmailId}
                 onEmailSelect={handleSelectEmail}
                 onEmailMove={handleEmailMove}
-                onRefresh={loadMailboxes}
               />
             </div>
             {/* Email Detail Modal/Sheet */}

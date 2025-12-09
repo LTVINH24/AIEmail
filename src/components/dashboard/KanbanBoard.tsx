@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Email, Mailbox } from '@/types/email';
 import { KanbanColumn } from './KanbanColumn';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
 import { emailService } from '@/services/emailService';
-import { toast } from 'sonner';
 
 interface KanbanColumn {
   id: string;
@@ -19,7 +14,6 @@ interface KanbanBoardProps {
   selectedEmailId: string | null;
   onEmailSelect: (emailId: string) => void;
   onEmailMove: (emailId: string, targetMailboxId: string, sourceMailboxId: string) => Promise<void>;
-  onRefresh: () => void;
 }
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
@@ -33,13 +27,9 @@ export function KanbanBoard({
   selectedEmailId,
   onEmailSelect,
   onEmailMove,
-  onRefresh,
 }: KanbanBoardProps) {
   const [draggedEmailId, setDraggedEmailId] = useState<string | null>(null);
   const [draggedSourceColumn, setDraggedSourceColumn] = useState<string | null>(null);
-  const [newLabelName, setNewLabelName] = useState('');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isCreatingLabel, setIsCreatingLabel] = useState(false);
   const [columns, setColumns] = useState<KanbanColumn[]>(DEFAULT_COLUMNS);
   const [columnEmails, setColumnEmails] = useState<Record<string, Email[]>>({});
   const [columnPages, setColumnPages] = useState<Record<string, { pageToken?: string; hasMore: boolean }>>({});
@@ -75,7 +65,7 @@ export function KanbanBoard({
 
     try {
       const pageToken = reset ? undefined : columnPages[columnId]?.pageToken;
-      const response = await emailService.getEmailsByMailbox(columnId, 3, pageToken);
+      const response = await emailService.getEmailsByMailbox(columnId, 5, pageToken);
       
       setColumnEmails(prev => ({
         ...prev,
@@ -131,85 +121,10 @@ export function KanbanBoard({
     }
   };
 
-  const handleCreateLabel = async () => {
-    if (!newLabelName.trim()) return;
-
-    setIsCreatingLabel(true);
-    try {
-      const newLabel = await emailService.createLabel(newLabelName.trim());
-      toast.success(`Label "${newLabelName}" created successfully`);
-      
-      // Add new column
-      const newColumn: KanbanColumn = {
-        id: newLabel.id,
-        name: newLabel.name,
-        icon: 'Tag'
-      };
-      setColumns(prev => [...prev, newColumn]);
-      
-      setNewLabelName('');
-      setIsCreateDialogOpen(false);
-      onRefresh();
-    } catch (error) {
-      console.error('Failed to create label:', error);
-      toast.error('Failed to create label');
-    } finally {
-      setIsCreatingLabel(false);
-    }
-  };
-
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b">
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Column
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Label</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Input
-                  placeholder="Label name (e.g., To Do, Done)"
-                  value={newLabelName}
-                  onChange={(e) => setNewLabelName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCreateLabel();
-                    }
-                  }}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreateDialogOpen(false);
-                    setNewLabelName('');
-                  }}
-                  disabled={isCreatingLabel}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateLabel}
-                  disabled={!newLabelName.trim() || isCreatingLabel}
-                >
-                  {isCreatingLabel ? 'Creating...' : 'Create'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex h-full gap-4 p-4 min-w-max">
+        <div className="flex h-full gap-4 p-4" style={{ minWidth: '100%' }}>
           {columns.map((column) => (
             <KanbanColumn
               key={column.id}
