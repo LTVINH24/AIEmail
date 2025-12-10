@@ -22,6 +22,7 @@ import { SnoozeModal } from './SnoozeModal';
 interface EmailDetailProps {
   email: Email | null;
   mailboxId: string;
+  selectedMailbox?: { type: string } | null;
   onReply: () => void;
   onReplyAll: () => void;
   onForward: () => void;
@@ -116,6 +117,7 @@ function RecipientsList({
 export function EmailDetail({
   email,
   mailboxId,
+  selectedMailbox,
   onReply,
   onReplyAll,
   onForward,
@@ -130,7 +132,7 @@ export function EmailDetail({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSnoozeModal, setShowSnoozeModal] = useState(false);
   
-  const isSnoozedMailbox = email?.mailboxId === 'SNOOZED' || mailboxId === 'SNOOZED' || mailboxId.toUpperCase().includes('SNOOZED');
+  const isSnoozedMailbox = selectedMailbox?.type === 'snoozed' || email?.mailboxId === 'SNOOZED' || mailboxId === 'SNOOZED' || mailboxId.toUpperCase().includes('SNOOZED');
 
   if (!email) {
     return (
@@ -246,7 +248,7 @@ export function EmailDetail({
             size="sm"
             className="gap-1.5"
           >
-            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
+            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span className="hidden md:inline">Unsnooze</span>
           </Button>
         ) : (

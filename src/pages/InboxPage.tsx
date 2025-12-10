@@ -110,7 +110,7 @@ export function InboxPage() {
 
         try {
           console.log('Prefetching email detail:', { id: current.id, threadId: current.threadId, workflowEmailId: current.workflowEmailId });
-          const detail = await emailService.getEmailById(current.threadId);
+          const detail = await emailService.getEmailById(current.threadId, mailboxIdForPrefetch);
           if (detail) {
             setEmails(prev => {
               if (mailboxIdForPrefetch !== selectedMailboxId) return prev;
@@ -237,7 +237,7 @@ export function InboxPage() {
     if (email && !email.messages) {
       try {
         console.log('Fetching email detail on select:', { id: email.id, threadId: email.threadId, workflowEmailId: email.workflowEmailId });
-        const detail = await emailService.getEmailById(email.threadId);
+        const detail = await emailService.getEmailById(email.threadId, mailboxId || selectedMailboxId);
         if (detail) {
           setEmails(prev => prev.map(e => {
             if (e.id === detail.id) {
@@ -1028,6 +1028,7 @@ export function InboxPage() {
                   <EmailDetail
                     email={selectedEmail}
                     mailboxId={selectedMailboxId}
+                    selectedMailbox={mailboxes.find(m => m.id === selectedMailboxId)}
                     onReply={handleReply}
                     onReplyAll={handleReplyAll}
                     onForward={handleForward}
@@ -1087,6 +1088,7 @@ export function InboxPage() {
               <EmailDetail
                 email={selectedEmail}
                 mailboxId={selectedMailboxId}
+                selectedMailbox={mailboxes.find(m => m.id === selectedMailboxId)}
                 onReply={handleReply}
                 onReplyAll={handleReplyAll}
                 onForward={handleForward}

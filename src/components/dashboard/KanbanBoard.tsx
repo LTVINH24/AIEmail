@@ -139,7 +139,7 @@ export function KanbanBoard({
       // Fetch chi tiết từng email và update progressively
       response.emails.forEach(async (email) => {
         try {
-          const fullEmail = await emailService.getEmailById(email.threadId);
+          const fullEmail = await emailService.getEmailById(email.threadId, columnId);
           if (fullEmail) {
             setColumnEmails(prev => {
               const currentEmails = prev[columnId] || [];

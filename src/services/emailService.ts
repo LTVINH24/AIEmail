@@ -330,7 +330,7 @@ export const emailService = {
     }
   },
 
-  async getEmailById(threadId: string): Promise<Email | null> {
+  async getEmailById(threadId: string, mailboxId?: string): Promise<Email | null> {
     try {
       if (!threadId || threadId === 'undefined' || threadId === 'null') {
         console.error('Invalid threadId:', threadId);
@@ -405,7 +405,7 @@ export const emailService = {
           type: att.mimeType,
           attachmentId: att.attachmentId || undefined,
         })),
-        mailboxId: 'INBOX',
+        mailboxId: mailboxId || 'INBOX',
         messages,
         workflowEmailId: cachedWorkflowEmailId, 
       };
