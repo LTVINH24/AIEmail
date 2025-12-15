@@ -761,4 +761,91 @@ export const emailService = {
       throw error;
     }
   },
+
+  /**
+   * Sync emails to prepare for semantic search
+   */
+  async syncEmails(): Promise<void> {
+    try {
+      await apiClient.post<void>('/emails/sync');
+    } catch (error) {
+      console.error('Failed to sync emails:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Perform semantic search on emails
+   */
+  async searchEmails(query: string): Promise<Email[]> {
+    try {
+      const response = await apiClient.get<ThreadDetailResponse[]>(`/emails/search?query=${encodeURIComponent(query)}`);
+      
+      // Transform ThreadDetailResponse to Email format
+      const emails: Email[] = response.map(thread => {
+        const firstMessage = thread.messages[0];
+        const lastMessage = thread.messages[thread.messages.length - 1];
+        
+        const from = parseEmailAddress(firstMessage.from);
+        const to = parseEmailAddresses(firstMessage.to);
+        const cc = firstMessage.cc ? parseEmailAddresses(firstMessage.cc) : undefined;
+        const bcc = firstMessage.bcc ? parseEmailAddresses(firstMessage.bcc) : undefined;
+        
+        const hasAttachments = thread.messages.some(m => m.attachments && m.attachments.length > 0);
+        const allAttachments = thread.messages.flatMap(m => 
+          (m.attachments || []).map(att => ({
+            id: att.attachmentId || '',
+            name: att.filename,
+            type: att.mimeType,
+            attachmentId: att.attachmentId || undefined,
+          }))
+        );
+        
+        const isRead = thread.labelIds ? !thread.labelIds.includes('UNREAD') : true;
+        const isStarred = thread.labelIds ? thread.labelIds.includes('STARRED') : false;
+        
+        return {
+          id: thread.id,
+          threadId: thread.id,
+          from,
+          to,
+          cc,
+          bcc,
+          subject: firstMessage.subject,
+          preview: thread.snippet,
+          body: firstMessage.textBody || firstMessage.snippet,
+          htmlBody: firstMessage.htmlBody,
+          timestamp: lastMessage.date,
+          isRead,
+          isStarred,
+          hasAttachments,
+          attachments: allAttachments,
+          mailboxId: 'SEARCH',
+          messageId: firstMessage.messageId,
+          messages: thread.messages.map(msg => ({
+            id: msg.id,
+            messageId: msg.messageId,
+            from: parseEmailAddress(msg.from),
+            to: parseEmailAddresses(msg.to),
+            subject: msg.subject,
+            date: msg.date,
+            snippet: msg.snippet,
+            textBody: msg.textBody,
+            htmlBody: msg.htmlBody,
+            attachments: (msg.attachments || []).map(att => ({
+              id: att.attachmentId || '',
+              name: att.filename,
+              type: att.mimeType,
+              attachmentId: att.attachmentId || undefined,
+            })),
+          })),
+        };
+      });
+      
+      return emails;
+    } catch (error) {
+      console.error('Failed to search emails:', error);
+      throw error;
+    }
+  },
 };

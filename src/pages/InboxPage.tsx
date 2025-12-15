@@ -9,6 +9,7 @@ import { EmailList } from '@/components/dashboard/EmailList';
 import { EmailDetail } from '@/components/dashboard/EmailDetail';
 import { ComposeEmailModal } from '@/components/dashboard/ComposeEmailModal';
 import { KanbanBoard } from '@/components/dashboard/KanbanBoard';
+import { SearchBar } from '@/components/dashboard/SearchBar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -61,6 +62,11 @@ export function InboxPage() {
   const [nextPageToken, setNextPageToken] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(false);
   const [kanbanRefreshTrigger, setKanbanRefreshTrigger] = useState(0);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   useEffect(() => {
     loadMailboxes();
@@ -773,6 +779,54 @@ export function InboxPage() {
     }
   };
 
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
+      // Clear search and return to normal mode
+      setSearchQuery('');
+      setIsSearchMode(false);
+      loadEmails(true);
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchQuery(query);
+    
+    try {
+      // First, sync emails to ensure search index is up to date
+      toast.loading('Syncing emails...');
+      await emailService.syncEmails();
+      toast.dismiss();
+      
+      // Then perform the search
+      toast.loading('Searching...');
+      const searchResults = await emailService.searchEmails(query);
+      toast.dismiss();
+      
+      setEmails(searchResults);
+      setIsSearchMode(true);
+      setSelectedEmailId(null);
+      
+      if (searchResults.length === 0) {
+        toast.info('No emails found');
+      } else {
+        toast.success(`Found ${searchResults.length} email${searchResults.length === 1 ? '' : 's'}`);
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+      toast.dismiss();
+      toast.error('Search failed. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setIsSearchMode(false);
+    setSelectedEmailId(null);
+    loadEmails(true);
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -832,8 +886,18 @@ export function InboxPage() {
               </SheetContent>
             </Sheet>
             <h1 className="text-lg font-semibold flex-1">
-              {mailboxes.find(m => m.id === selectedMailboxId)?.name || 'Inbox'}
+              {isSearchMode ? `Search (${emails.length})` : mailboxes.find(m => m.id === selectedMailboxId)?.name || 'Inbox'}
             </h1>
+            {isSearchMode && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSearch}
+                className="text-xs"
+              >
+                Clear
+              </Button>
+            )}
             {/* View Mode Toggle - Mobile */}
             <Button
               variant="ghost"
@@ -877,6 +941,17 @@ export function InboxPage() {
           </>
         )}
       </div>
+
+      {/* Mobile Search Bar - Always visible on mobile in list view */}
+      {viewMode === 'list' && !showEmailDetail && (
+        <div className="lg:hidden p-3 border-b bg-background">
+          <SearchBar
+            emails={emails}
+            onSearch={handleSearch}
+            isSearching={isSearching}
+          />
+        </div>
+      )}
 
       {/* Desktop/Tablet Layout */}
       <div className="flex-1 flex overflow-hidden min-h-0">
@@ -1063,18 +1138,40 @@ export function InboxPage() {
               {/* View Toggle Bar - Desktop */}
               <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
                 <h2 className="text-lg font-semibold">
-                  {mailboxes.find(m => m.id === selectedMailboxId)?.name || 'Inbox'}
+                  {isSearchMode ? `Search Results (${emails.length})` : mailboxes.find(m => m.id === selectedMailboxId)?.name || 'Inbox'}
                 </h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setViewMode('kanban')}
-                  className="gap-2"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                  Kanban View
-                </Button>
+                <div className="flex items-center gap-2">
+                  {isSearchMode && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearSearch}
+                      className="gap-2"
+                    >
+                      Clear Search
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setViewMode('kanban')}
+                    className="gap-2"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    Kanban View
+                  </Button>
+                </div>
               </div>
+              
+              {/* Search Bar */}
+              <div className="p-4 border-b bg-background">
+                <SearchBar
+                  emails={emails}
+                  onSearch={handleSearch}
+                  isSearching={isSearching}
+                />
+              </div>
+              
               <div className="flex-1 min-h-0">
                 <EmailList
                   emails={emails}
@@ -1082,14 +1179,14 @@ export function InboxPage() {
                   mailboxId={selectedMailboxId}
                   onSelectEmail={handleSelectEmail}
                   onToggleStar={handleToggleStar}
-                  onRefresh={() => loadEmails(true)}
+                  onRefresh={() => isSearchMode ? handleClearSearch() : loadEmails(true)}
                   onCompose={() => setIsComposeOpen(true)}
                   onDelete={handleDelete}
                   onPermanentDelete={handlePermanentDelete}
                   onMoveToInbox={handleMoveToInbox}
                   onToggleRead={handleToggleRead}
-                  isLoading={isLoadingEmails}
-                  hasMore={hasMore}
+                  isLoading={isLoadingEmails || isSearching}
+                  hasMore={hasMore && !isSearchMode}
                   onLoadMore={handleLoadMore}
                 />
               </div>
