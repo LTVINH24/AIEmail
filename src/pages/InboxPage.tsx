@@ -166,6 +166,27 @@ export function InboxPage() {
                 filtered = filtered.filter(email => email.hasAttachments);
               }
               
+              // Re-apply sort after updating timestamp
+              if (filters.sort === 'oldest') {
+                filtered.sort((a, b) => {
+                  const timeA = new Date(a.timestamp).getTime();
+                  const timeB = new Date(b.timestamp).getTime();
+                  return timeA - timeB;
+                });
+              } else if (filters.sort === 'newest') {
+                filtered.sort((a, b) => {
+                  const timeA = new Date(a.timestamp).getTime();
+                  const timeB = new Date(b.timestamp).getTime();
+                  return timeB - timeA;
+                });
+              } else if (filters.sort === 'sender') {
+                filtered.sort((a, b) => {
+                  const senderA = (a.from.name || a.from.email || '').toLowerCase();
+                  const senderB = (b.from.name || b.from.email || '').toLowerCase();
+                  return senderA.localeCompare(senderB);
+                });
+              }
+              
               return filtered;
             });
           }
