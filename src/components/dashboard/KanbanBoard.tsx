@@ -146,9 +146,10 @@ export function KanbanBoard({
         columnId, 
         5, 
         pageToken,
-        filters?.sort,
-        filters?.unreadOnly,
-        filters?.hasAttachments
+        undefined, // query parameter
+        filters?.sort || 'newest', // sort parameter
+        filters?.unreadOnly || false,
+        filters?.hasAttachments || false
       );
       
       // Hiển thị thông tin thread cơ bản ngay lập tức
