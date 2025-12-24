@@ -1,9 +1,21 @@
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import type { Email } from '@/types/email';
-import { Star, Paperclip, RefreshCw, Trash2, Mail, MailOpen, Edit, Inbox, Trash, Clock, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import type { Email } from "@/types/email";
+import {
+  Star,
+  Paperclip,
+  RefreshCw,
+  Trash2,
+  Mail,
+  MailOpen,
+  Edit,
+  Inbox,
+  Trash,
+  Clock,
+  Sparkles,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,8 +25,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { EmailSummaryModal } from './EmailSummaryModal';
+} from "@/components/ui/alert-dialog";
+import { EmailSummaryModal } from "./EmailSummaryModal";
 
 interface EmailListProps {
   emails: Email[];
@@ -52,13 +64,15 @@ export function EmailList({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [summaryEmailId, setSummaryEmailId] = useState<string | null>(null);
-  const [summaryEmailSubject, setSummaryEmailSubject] = useState<string | undefined>();
+  const [summaryEmailSubject, setSummaryEmailSubject] = useState<
+    string | undefined
+  >();
 
   const handleSelectAll = () => {
     if (selectedIds.size === emails.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(emails.map(e => e.id)));
+      setSelectedIds(new Set(emails.map((e) => e.id)));
     }
   };
 
@@ -73,7 +87,7 @@ export function EmailList({
   };
 
   const handleBulkDelete = () => {
-    if (mailboxId === 'TRASH' && onPermanentDelete) {
+    if (mailboxId === "TRASH" && onPermanentDelete) {
       setShowDeleteDialog(true);
     } else {
       onDelete(Array.from(selectedIds));
@@ -108,13 +122,19 @@ export function EmailList({
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (days === 0) {
-      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
     } else if (days === 1) {
-      return 'Yesterday';
+      return "Yesterday";
     } else if (days < 7) {
-      return date.toLocaleDateString('en-US', { weekday: 'short' });
+      return date.toLocaleDateString("en-US", { weekday: "short" });
     } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
     }
   };
 
@@ -126,15 +146,18 @@ export function EmailList({
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (hours < 1) {
-      return 'Soon';
+      return "Soon";
     } else if (hours < 24) {
       return `${hours}h`;
     } else if (days === 1) {
-      return 'Tomorrow';
+      return "Tomorrow";
     } else if (days < 7) {
-      return date.toLocaleDateString('en-US', { weekday: 'short' });
+      return date.toLocaleDateString("en-US", { weekday: "short" });
     } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
     }
   };
 
@@ -147,35 +170,62 @@ export function EmailList({
             <Edit className="h-4 w-4" />
             <span className="hidden xs:inline">Compose</span>
           </Button>
-          <Button onClick={onRefresh} variant="outline" size="sm" className="gap-1.5">
+          <Button
+            onClick={onRefresh}
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+          >
             <RefreshCw className="h-4 w-4" />
             <span className="hidden xs:inline">Refresh</span>
           </Button>
         </div>
-        
+
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm text-gray-600">{selectedIds.size} selected</span>
-            
-            {mailboxId === 'TRASH' ? (
+            <span className="text-xs sm:text-sm text-gray-600">
+              {selectedIds.size} selected
+            </span>
+
+            {mailboxId === "TRASH" ? (
               <>
-                <Button onClick={handleBulkDelete} variant="outline" size="sm" className="gap-1.5 text-red-600 hover:text-red-700">
+                <Button
+                  onClick={handleBulkDelete}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-red-600 hover:text-red-700"
+                >
                   <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden xs:inline">Delete Forever</span>
                 </Button>
-                <Button onClick={handleBulkMoveToInbox} variant="outline" size="sm" className="gap-1.5">
+                <Button
+                  onClick={handleBulkMoveToInbox}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                >
                   <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden xs:inline">Move to Inbox</span>
                 </Button>
               </>
             ) : (
-              <Button onClick={handleBulkDelete} variant="outline" size="sm" className="gap-1.5">
+              <Button
+                onClick={handleBulkDelete}
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+              >
                 <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden xs:inline">Delete</span>
               </Button>
             )}
-            
-            <Button onClick={handleBulkToggleRead} variant="outline" size="sm" className="gap-1.5">
+
+            <Button
+              onClick={handleBulkToggleRead}
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+            >
               <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Toggle Read</span>
             </Button>
@@ -189,12 +239,14 @@ export function EmailList({
           {!isLoading && (
             <div className="px-2 sm:px-4 py-2 bg-gray-50 border-b flex items-center gap-2 sm:gap-3">
               <Checkbox
-                checked={selectedIds.size === emails.length && emails.length > 0}
+                checked={
+                  selectedIds.size === emails.length && emails.length > 0
+                }
                 onCheckedChange={handleSelectAll}
                 aria-label="Select all emails"
               />
               <span className="text-xs sm:text-sm text-gray-600">
-                {emails.length} {emails.length === 1 ? 'email' : 'emails'}
+                {emails.length} {emails.length === 1 ? "email" : "emails"}
               </span>
             </div>
           )}
@@ -213,20 +265,23 @@ export function EmailList({
             </div>
           ) : null}
 
-          {!isLoading && emails.map((email) => {
+          {!isLoading &&
+            emails.map((email) => {
               const isSelected = email.id === selectedEmailId;
               const isChecked = selectedIds.has(email.id);
-              const isSkeleton = !email.messages || email.from.name === '(Unknown)';
+              const isSkeleton =
+                email.from.name === "(Unknown)" ||
+                (!email.subject && !email.preview);
 
               return (
                 <div
                   key={email.id}
                   className={cn(
-                    'px-2 sm:px-4 py-2 sm:py-3 cursor-pointer transition-colors border-l-4',
-                    isSelected && 'bg-blue-50 hover:bg-blue-50',
-                    !email.isRead 
-                      ? 'bg-blue-50/30 border-l-blue-500 font-medium' 
-                      : 'border-l-transparent hover:bg-gray-50'
+                    "px-2 sm:px-4 py-2 sm:py-3 cursor-pointer transition-colors border-l-4",
+                    isSelected && "bg-blue-50 hover:bg-blue-50",
+                    !email.isRead
+                      ? "bg-blue-50/30 border-l-blue-500 font-medium"
+                      : "border-l-transparent hover:bg-gray-50"
                   )}
                   onClick={() => onSelectEmail(email.id)}
                 >
@@ -246,14 +301,16 @@ export function EmailList({
                         onToggleStar(email.id);
                       }}
                       className="mt-0.5 sm:mt-1 shrink-0"
-                      aria-label={email.isStarred ? 'Unstar email' : 'Star email'}
+                      aria-label={
+                        email.isStarred ? "Unstar email" : "Star email"
+                      }
                     >
                       <Star
                         className={cn(
-                          'h-3.5 w-3.5 sm:h-4 sm:w-4 transition-colors',
+                          "h-3.5 w-3.5 sm:h-4 sm:w-4 transition-colors",
                           email.isStarred
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-400 hover:text-yellow-400'
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-400 hover:text-yellow-400"
                         )}
                       />
                     </button>
@@ -274,8 +331,10 @@ export function EmailList({
                           <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
                             <span
                               className={cn(
-                                'text-xs sm:text-sm truncate flex-1 min-w-0',
-                                !email.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'
+                                "text-xs sm:text-sm truncate flex-1 min-w-0",
+                                !email.isRead
+                                  ? "font-semibold text-gray-900"
+                                  : "text-gray-700"
                               )}
                             >
                               {email.from.name}
@@ -284,7 +343,7 @@ export function EmailList({
                               {email.hasAttachments && (
                                 <Paperclip className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400" />
                               )}
-                              {mailboxId === 'SNOOZED' && email.snoozedUntil ? (
+                              {mailboxId === "SNOOZED" && email.snoozedUntil ? (
                                 <>
                                   <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500" />
                                   <span className="text-[10px] sm:text-xs text-blue-600 whitespace-nowrap font-medium">
@@ -300,25 +359,33 @@ export function EmailList({
                           </div>
                           <div
                             className={cn(
-                              'text-xs sm:text-sm truncate mb-0.5 sm:mb-1',
-                              !email.isRead ? 'font-semibold text-gray-900' : 'text-gray-600'
+                              "text-xs sm:text-sm truncate mb-0.5 sm:mb-1",
+                              !email.isRead
+                                ? "font-semibold text-gray-900"
+                                : "text-gray-600"
                             )}
                           >
                             {email.subject}
                           </div>
-                          <div className={cn(
-                            'text-xs sm:text-sm truncate',
-                            !email.isRead ? 'text-gray-700 font-medium' : 'text-gray-500'
-                          )}>
+                          <div
+                            className={cn(
+                              "text-xs sm:text-sm truncate",
+                              !email.isRead
+                                ? "text-gray-700 font-medium"
+                                : "text-gray-500"
+                            )}
+                          >
                             {email.preview}
                           </div>
-                          
+
                           {/* AI Summary Button */}
                           <div className="mt-2">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSummaryEmailId(email.messages?.[0]?.id || email.id);
+                                setSummaryEmailId(
+                                  email.messages?.[0]?.id || email.id
+                                );
                                 setSummaryEmailSubject(email.subject);
                               }}
                               className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded transition-colors"
@@ -333,8 +400,7 @@ export function EmailList({
                   </div>
                 </div>
               );
-            })
-          }
+            })}
 
           {!isLoading && hasMore && (
             <div className="p-4 text-center border-t bg-gray-50">
@@ -356,13 +422,16 @@ export function EmailList({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Forever?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete {selectedIds.size} email{selectedIds.size > 1 ? 's' : ''}. 
-              This action cannot be undone.
+              This will permanently delete {selectedIds.size} email
+              {selectedIds.size > 1 ? "s" : ""}. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmPermanentDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={confirmPermanentDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Delete Forever
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -376,7 +445,7 @@ export function EmailList({
           setSummaryEmailId(null);
           setSummaryEmailSubject(undefined);
         }}
-        messageId={summaryEmailId || ''}
+        messageId={summaryEmailId || ""}
         emailSubject={summaryEmailSubject}
       />
     </div>

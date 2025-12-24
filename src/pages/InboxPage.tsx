@@ -264,7 +264,7 @@ export function InboxPage() {
       const pageToken = reset ? undefined : nextPageToken;
       const response = await emailService.getEmailsByMailbox(
         selectedMailboxId,
-        50,
+        5,
         pageToken,
         undefined,
         filters.sort,
@@ -981,11 +981,11 @@ export function InboxPage() {
       let searchResults: Email[] = [];
 
       if (isSemantic) {
-        toast.loading("Performing semantic search...");
+        // toast.loading("Performing semantic search...");
         searchResults = await emailService.searchSemanticEmails(query);
       } else {
         // First, sync emails to ensure search index is up to date (for fuzzy search mostly, or keep existing logic)
-        toast.loading("Syncing emails...");
+        // toast.loading("Syncing emails...");
         await emailService.syncEmails();
 
         // Then perform the search

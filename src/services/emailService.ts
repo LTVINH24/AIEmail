@@ -1074,7 +1074,19 @@ export const emailService = {
         from: parseEmailAddress(workflowEmail.from || ""),
         to: parseEmailAddresses(workflowEmail.to || ""),
         subject: workflowEmail.subject || "(No Subject)",
-        preview: workflowEmail.snippet || workflowEmail.summary || "",
+        preview:
+          workflowEmail.snippet ||
+          workflowEmail.summary ||
+          (workflowEmail.body
+            ? workflowEmail.body
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+                .replace(/<[^>]*>/g, "")
+                .replace(/&nbsp;/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 100)
+            : ""),
         body: workflowEmail.body || "",
         htmlBody: undefined,
         timestamp: workflowEmail.receivedAt || new Date().toISOString(),
