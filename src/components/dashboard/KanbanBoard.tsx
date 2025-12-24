@@ -41,6 +41,7 @@ interface KanbanBoardProps {
   onColumnsChange?: (columnIds: string[]) => void;
   refreshTrigger?: number;
   filters?: EmailFilterOptions;
+  onLabelRename?: () => void;
 }
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
@@ -57,6 +58,7 @@ export function KanbanBoard({
   onColumnsChange,
   refreshTrigger,
   filters,
+  onLabelRename,
 }: KanbanBoardProps) {
   const [draggedEmailId, setDraggedEmailId] = useState<string | null>(null);
   const [draggedSourceColumn, setDraggedSourceColumn] = useState<string | null>(
@@ -451,6 +453,40 @@ export function KanbanBoard({
     }
   };
 
+  const handleRenameColumn = async (columnId: string, newName: string) => {
+    const trimmedName = newName.trim();
+    if (!trimmedName) return;
+
+    if (
+      mailboxes.some(
+        (m) =>
+          m.name.toLowerCase() === trimmedName.toLowerCase() &&
+          m.id !== columnId
+      )
+    ) {
+      toast.error(`Label "${trimmedName}" already exists`);
+      return;
+    }
+
+    try {
+      await emailService.updateLabel(columnId, trimmedName);
+
+      setColumns((prev) =>
+        prev.map((col) =>
+          col.id === columnId ? { ...col, name: trimmedName } : col
+        )
+      );
+
+      toast.success(`Renamed to "${trimmedName}"`);
+
+      onLabelRename?.();
+    } catch (error) {
+      console.error("Failed to rename column:", error);
+      toast.error("Failed to rename column");
+      throw error;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
@@ -475,6 +511,11 @@ export function KanbanBoard({
                 onLoadMore={() => loadColumnEmails(column.id, false)}
                 onRemove={handleRemoveColumn}
                 canRemove={!isDefaultColumn}
+                onRename={
+                  mailboxes.find((m) => m.id === column.id)?.type === "user"
+                    ? handleRenameColumn
+                    : undefined
+                }
               />
             );
           })}

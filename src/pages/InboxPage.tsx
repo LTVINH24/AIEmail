@@ -704,7 +704,7 @@ export function InboxPage() {
       // Trigger KanbanBoard refresh
       setKanbanRefreshTrigger((prev) => prev + 1);
     } catch (error) {
-      // Error already handled in handleUnsnooze
+      console.error("Failed to unsnooze in Kanban:", error);
     }
   };
 
@@ -1331,6 +1331,7 @@ export function InboxPage() {
                 onUnsnooze={handleUnsnooze}
                 refreshTrigger={kanbanRefreshTrigger}
                 filters={filters}
+                onLabelRename={loadMailboxes}
               />
             </div>
             {/* Email Detail Modal/Sheet */}

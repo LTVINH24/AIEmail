@@ -813,6 +813,17 @@ export const emailService = {
     }
   },
 
+  async updateLabel(id: string, name: string): Promise<LabelResponse> {
+    try {
+      return await apiClient.patch<LabelResponse>(`/mailboxes?id=${id}`, {
+        name,
+      });
+    } catch (error) {
+      console.error("Failed to update label:", error);
+      throw error;
+    }
+  },
+
   /**
    * Get all workflow emails (with status and summary)
    */
