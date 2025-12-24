@@ -17,7 +17,7 @@ class AuthService {
   }
 
   getGoogleAuthUrl(state?: string): string {
-    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://aimail-be-3.onrender.com';
     const url = new URL(`${baseURL}/auth/google/authorize`);
     if (state) {
       url.searchParams.append('state', state);

@@ -83,7 +83,7 @@ export function InboxPage() {
   const [kanbanRefreshTrigger, setKanbanRefreshTrigger] = useState(0);
 
   // Search state
-  const [searchQuery, setSearchQuery] = useState("");
+  const [_searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
 

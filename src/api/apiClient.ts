@@ -10,7 +10,7 @@ class ApiClient {
   private baseURL: string;
   private refreshPromise: Promise<string> | null = null;
 
-  constructor(baseURL: string = import.meta.env.VITE_API_BASE_URL|| 'https://aimail-be-1.onrender.com') {
+  constructor(baseURL: string = import.meta.env.VITE_API_BASE_URL|| 'https://aimail-be-3.onrender.com') {
     this.baseURL = baseURL;
   }
 
