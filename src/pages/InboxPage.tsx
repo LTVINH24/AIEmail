@@ -67,20 +67,18 @@ function applyFiltersAndSort(
     });
   }
 
-  // Apply sorting
-  filtered.sort((a, b) => {
-    if (filters.sort === "oldest") {
-      // Sort by oldest first - use date from first message if available
+  // Apply sorting - "newest" keeps API order (already sorted by Gmail)
+  // Only sort when explicitly changing order
+  if (filters.sort === "oldest") {
+    // Reverse the order to show oldest first
+    filtered.sort((a, b) => {
       const dateA = a.messages?.[0]?.date || a.timestamp;
       const dateB = b.messages?.[0]?.date || b.timestamp;
       return new Date(dateA).getTime() - new Date(dateB).getTime();
-    } else if (filters.sort === "newest") {
-      // Sort by newest first - use date from first message if available
-      const dateA = a.messages?.[0]?.date || a.timestamp;
-      const dateB = b.messages?.[0]?.date || b.timestamp;
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    } else if (filters.sort === "sender") {
-      // Sort by sender - use from of first message if available
+    });
+  } else if (filters.sort === "sender") {
+    // Sort by sender alphabetically
+    filtered.sort((a, b) => {
       const senderA = (
         a.messages?.[0]?.from.name ||
         a.messages?.[0]?.from.email ||
@@ -96,9 +94,9 @@ function applyFiltersAndSort(
         ""
       ).toLowerCase();
       return senderA.localeCompare(senderB);
-    }
-    return 0;
-  });
+    });
+  }
+  // For "newest", keep the original order from API (already newest first)
 
   return filtered;
 }
