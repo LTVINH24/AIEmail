@@ -204,9 +204,12 @@ export function InboxPage() {
   }, [urlMailboxId, urlEmailId]);
 
   useEffect(() => {
-    loadEmails(true);
+    // Only load emails in list view, KanbanBoard loads its own data
+    if (viewMode === 'list') {
+      loadEmails(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMailboxId]);
+  }, [selectedMailboxId, viewMode]);
 
   const prefetchEmailDetails = async (
     emailsToPrefetch: Email[],
@@ -1434,9 +1437,14 @@ export function InboxPage() {
                       filters={filters}
                       onFiltersChange={setFilters}
                       onClear={() => {
-                        // Clear filters from localStorage and reload page
-                        localStorage.removeItem("emailFilters");
-                        window.location.reload();
+                        // Reset filters to default without reloading page
+                        const defaultFilters = {
+                          sort: 'newest' as const,
+                          unreadOnly: false,
+                          hasAttachments: false,
+                        };
+                        setFilters(defaultFilters);
+                        localStorage.removeItem("email-filters");
                       }}
                     />
                   )}
