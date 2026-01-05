@@ -205,7 +205,7 @@ export function InboxPage() {
 
   useEffect(() => {
     // Only load emails in list view, KanbanBoard loads its own data
-    if (viewMode === 'list') {
+    if (viewMode === "list") {
       loadEmails(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -483,7 +483,9 @@ export function InboxPage() {
   const handleDelete = async (emailIds: string[]) => {
     const emailsToDelete = rawEmails.filter((e) => emailIds.includes(e.id));
 
-    setRawEmails((prev) => prev.filter((email) => !emailIds.includes(email.id)));
+    setRawEmails((prev) =>
+      prev.filter((email) => !emailIds.includes(email.id))
+    );
     if (emailIds.includes(selectedEmailId || "")) {
       setSelectedEmailId(null);
       setShowEmailDetail(false);
@@ -505,7 +507,9 @@ export function InboxPage() {
   const handlePermanentDelete = async (emailIds: string[]) => {
     const emailsToDelete = rawEmails.filter((e) => emailIds.includes(e.id));
 
-    setRawEmails((prev) => prev.filter((email) => !emailIds.includes(email.id)));
+    setRawEmails((prev) =>
+      prev.filter((email) => !emailIds.includes(email.id))
+    );
     if (emailIds.includes(selectedEmailId || "")) {
       setSelectedEmailId(null);
       setShowEmailDetail(false);
@@ -527,7 +531,9 @@ export function InboxPage() {
   const handleMoveToInbox = async (emailIds: string[]) => {
     const emailsToMove = rawEmails.filter((e) => emailIds.includes(e.id));
 
-    setRawEmails((prev) => prev.filter((email) => !emailIds.includes(email.id)));
+    setRawEmails((prev) =>
+      prev.filter((email) => !emailIds.includes(email.id))
+    );
     if (emailIds.includes(selectedEmailId || "")) {
       setSelectedEmailId(null);
       setShowEmailDetail(false);
@@ -691,7 +697,9 @@ export function InboxPage() {
     // console.log('Current rawEmails:', rawEmails.map(e => ({ id: e.id, threadId: e.threadId, workflowEmailId: e.workflowEmailId })));
 
     try {
-      const email = rawEmails.find((e) => e.workflowEmailId === workflowEmailId);
+      const email = rawEmails.find(
+        (e) => e.workflowEmailId === workflowEmailId
+      );
       // console.log('Found email to remove:', email);
 
       // Step 1: Modify labels (SNOOZED → INBOX)
@@ -1410,7 +1418,7 @@ export function InboxPage() {
             {/* Column 2: Email List (Hidden on mobile when detail is shown) */}
             <div
               className={`${
-                showEmailDetail ? "hidden lg:block" : "flex-1 min-w-0"
+                showEmailDetail ? "hidden lg:flex" : "flex-1 min-w-0"
               } lg:flex-1 lg:min-w-0 flex flex-col`}
             >
               {/* View Toggle Bar - Desktop */}
@@ -1439,7 +1447,7 @@ export function InboxPage() {
                       onClear={() => {
                         // Reset filters to default without reloading page
                         const defaultFilters = {
-                          sort: 'newest' as const,
+                          sort: "newest" as const,
                           unreadOnly: false,
                           hasAttachments: false,
                         };
