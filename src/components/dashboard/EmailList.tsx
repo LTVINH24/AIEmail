@@ -388,7 +388,7 @@ export function EmailList({
                                 );
                                 setSummaryEmailSubject(email.subject);
                               }}
-                              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded transition-colors"
+                              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 bg-gradient-t-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded transition-colors"
                             >
                               <Sparkles className="h-3 w-3" />
                               AI Summary
