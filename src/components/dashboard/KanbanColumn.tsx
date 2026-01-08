@@ -102,23 +102,30 @@ export function KanbanColumn({
   return (
     <div
       className={cn(
-        "flex flex-col flex-1 bg-muted/30 rounded-lg border transition-colors h-full max-w-1/3",
-        isDragOver && "border-primary bg-primary/5"
+        "flex flex-col flex-1 rounded-xl border bg-background/60 backdrop-blur-sm transition-all duration-300 h-full max-w-sm shadow-sm hover:shadow-md",
+        isDragOver && "border-primary ring-1 ring-primary/20 bg-primary/5"
       )}
-      style={{ minWidth: "320px" }}
+      style={{ minWidth: "calc((100% - 48px) / 3)" }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Column Header */}
-      <div className="flex items-center gap-2 p-4 border-b bg-background/50 shrink-0 h-[65px]">
-        <IconComponent className="h-5 w-5 text-muted-foreground" />
+      <div className="flex items-center gap-3 p-4 border-b bg-muted/20 shrink-0 h-[72px]">
+        <div
+          className={cn(
+            "p-2 rounded-lg bg-background shadow-sm border",
+            isSnoozed ? "text-orange-500" : "text-primary"
+          )}
+        >
+          <IconComponent className="h-4 w-4" />
+        </div>
 
         {isRenaming ? (
           <div className="flex-1 mr-2">
             <input
               autoFocus
-              className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-2 py-1 text-sm font-semibold bg-background border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onBlur={handleRenameSubmit}
@@ -128,9 +135,8 @@ export function KanbanColumn({
         ) : (
           <h3
             className={cn(
-              "font-semibold flex-1 truncate",
-              canRename &&
-                "cursor-pointer hover:underline decoration-dashed underline-offset-4"
+              "font-semibold text-base flex-1 truncate text-foreground/90",
+              canRename && "cursor-pointer hover:text-primary transition-colors"
             )}
             onClick={() => {
               if (canRename) {
@@ -144,12 +150,15 @@ export function KanbanColumn({
           </h3>
         )}
 
-        <span className="text-sm text-muted-foreground">{emails.length}</span>
+        <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-muted text-xs font-medium text-muted-foreground">
+          {emails.length}
+        </div>
+
         {canRemove && onRemove && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+            className="h-7 w-7 p-0 ml-1 hover:bg-destructive/10 hover:text-destructive rounded-full"
             onClick={() => onRemove(column.id)}
             title="Remove column"
           >
@@ -159,8 +168,8 @@ export function KanbanColumn({
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto p-2 min-h-0">
-        <div className="space-y-2">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+        <div className="space-y-3">
           {emails.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
               {isLoading ? "Loading..." : "No emails"}

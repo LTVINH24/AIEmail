@@ -220,7 +220,10 @@ export function KanbanBoard({
   useEffect(() => {
     const filtered: Record<string, Email[]> = {};
     Object.keys(rawColumnEmails).forEach((columnId) => {
-      filtered[columnId] = applyKanbanFilters(rawColumnEmails[columnId], filters);
+      filtered[columnId] = applyKanbanFilters(
+        rawColumnEmails[columnId],
+        filters
+      );
     });
     setColumnEmails(filtered);
   }, [rawColumnEmails, filters]);
@@ -425,11 +428,12 @@ export function KanbanBoard({
           // Remove from source (SNOOZED) column
           setRawColumnEmails((prev) => ({
             ...prev,
-            [draggedSourceColumn]: prev[draggedSourceColumn]?.filter(
-              (e) => e.id !== draggedEmailId && e.threadId !== draggedEmailId
-            ) || [],
+            [draggedSourceColumn]:
+              prev[draggedSourceColumn]?.filter(
+                (e) => e.id !== draggedEmailId && e.threadId !== draggedEmailId
+              ) || [],
           }));
-          
+
           // Add to target column at the beginning
           setRawColumnEmails((prev) => ({
             ...prev,
@@ -458,28 +462,28 @@ export function KanbanBoard({
     try {
       // Call API to update labels (backend)
       await onEmailMove(draggedEmailId, targetColumnId, draggedSourceColumn);
-      
+
       // Update UI immediately without reloading (FE only)
       const emailToMove = rawColumnEmails[draggedSourceColumn]?.find(
         (e) => e.id === draggedEmailId
       );
-      
+
       if (emailToMove) {
         // Remove from source column
         setRawColumnEmails((prev) => ({
           ...prev,
-          [draggedSourceColumn]: prev[draggedSourceColumn]?.filter(
-            (e) => e.id !== draggedEmailId
-          ) || [],
+          [draggedSourceColumn]:
+            prev[draggedSourceColumn]?.filter((e) => e.id !== draggedEmailId) ||
+            [],
         }));
-        
+
         // Add to target column at the beginning
         setRawColumnEmails((prev) => ({
           ...prev,
           [targetColumnId]: [emailToMove, ...(prev[targetColumnId] || [])],
         }));
       }
-      
+
       toast.success("Email moved successfully");
     } catch (error) {
       console.error("Failed to move email:", error);
@@ -554,9 +558,10 @@ export function KanbanBoard({
         // Remove from source column
         setRawColumnEmails((prev) => ({
           ...prev,
-          [emailToSnooze.sourceColumn]: prev[emailToSnooze.sourceColumn]?.filter(
-            (e) => e.id !== emailToSnooze.id
-          ) || [],
+          [emailToSnooze.sourceColumn]:
+            prev[emailToSnooze.sourceColumn]?.filter(
+              (e) => e.id !== emailToSnooze.id
+            ) || [],
         }));
 
         // Find SNOOZED column and add email to it
@@ -629,9 +634,9 @@ export function KanbanBoard({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex h-full gap-4 p-4" style={{ minWidth: "100%" }}>
+    <div className="flex flex-col h-full bg-linear-to-br from-background to-muted/30">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+        <div className="flex h-full gap-6 p-6" style={{ minWidth: "100%" }}>
           {columns.map((column) => {
             const isDefaultColumn = ["INBOX"].includes(column.id);
             return (
