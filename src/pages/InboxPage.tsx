@@ -531,7 +531,11 @@ export function InboxPage() {
     }
 
     if (email && !email.isRead) {
-      handleToggleRead([emailId]);
+      await handleToggleRead([emailId]);
+      // Trigger Kanban refresh to update read status in Kanban view
+      if (viewMode === "kanban") {
+        setKanbanRefreshTrigger((prev) => prev + 1);
+      }
     }
   };
 
