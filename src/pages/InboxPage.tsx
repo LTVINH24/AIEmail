@@ -1068,6 +1068,7 @@ export function InboxPage() {
   const handleAddColumn = async () => {
     try {
       let labelId = selectedLabelForColumn;
+      let systemLabel = !isCreatingNewLabel; // true for existing label, false for new label
 
       if (isCreatingNewLabel) {
         if (!newLabelName.trim()) {
@@ -1086,6 +1087,7 @@ export function InboxPage() {
 
         const newLabel = await emailService.createLabel(newLabelName.trim());
         labelId = newLabel.id;
+        systemLabel = false; // New labels are always user-created
 
         await loadMailboxes();
 
@@ -1095,21 +1097,22 @@ export function InboxPage() {
           toast.error("Please select a label");
           return;
         }
+        systemLabel = true; // Existing labels are system labels
       }
 
       // Add column to Kanban board
       if (
         (
           window as typeof window & {
-            __kanbanAddColumn?: (id: string) => boolean;
+            __kanbanAddColumn?: (id: string, systemLabel: boolean) => Promise<boolean>;
           }
         ).__kanbanAddColumn
       ) {
-        const addResult = (
+        const addResult = await (
           window as typeof window & {
-            __kanbanAddColumn?: (id: string) => boolean;
+            __kanbanAddColumn?: (id: string, systemLabel: boolean) => Promise<boolean>;
           }
-        ).__kanbanAddColumn!(labelId);
+        ).__kanbanAddColumn!(labelId, systemLabel);
 
         if (addResult === false) {
           const labelName =

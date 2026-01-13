@@ -20,6 +20,13 @@ interface KanbanColumn {
   id: string;
   name: string;
   icon: string;
+  kanbanColumnId?: number; // Backend ID from API
+}
+
+interface KanbanColumnMapping {
+  labelId: string;
+  kanbanColumnId: number;
+  name: string;
 }
 
 interface KanbanBoardProps {
@@ -151,6 +158,8 @@ export function KanbanBoard({
     threadId?: string;
   } | null>(null);
 
+  const [columnMappings, setColumnMappings] = useState<KanbanColumnMapping[]>([]);
+  
   const [selectedColumnIds, setSelectedColumnIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("kanban-selected-columns");
@@ -168,14 +177,98 @@ export function KanbanBoard({
     const selectedColumns = selectedColumnIds
       .map((id) => {
         const mailbox = mailboxes.find((m) => m.id === id);
-        return mailbox
-          ? { id: mailbox.id, name: mailbox.name, icon: mailbox.icon }
-          : null;
+        const mapping = columnMappings.find((m) => m.labelId === id);
+        if (!mailbox) return null;
+        
+        const col: KanbanColumn = { 
+          id: mailbox.id, 
+          name: mailbox.name, 
+          icon: mailbox.icon,
+          kanbanColumnId: mapping?.kanbanColumnId
+        };
+        return col;
       })
-      .filter((col): col is KanbanColumn => col !== null);
+      .filter((col) => col !== null) as KanbanColumn[];
 
     setColumns(selectedColumns);
-  }, [mailboxes, selectedColumnIds]);
+  }, [mailboxes, selectedColumnIds, columnMappings]);
+
+  // Load kanban columns from API on mount
+  useEffect(() => {
+    loadKanbanColumnsFromAPI();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reload columns when mailboxes change (to map names to labelIds)
+  useEffect(() => {
+    if (mailboxes.length > 0 && columnMappings.length === 0) {
+      loadKanbanColumnsFromAPI();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailboxes]);
+
+  const loadKanbanColumnsFromAPI = async () => {
+    try {
+      const apiColumns = await emailService.getKanbanColumns();
+      console.log("Loaded kanban columns from API:", apiColumns);
+      console.log("Available mailboxes:", mailboxes);
+      
+      // Map API columns to KanbanColumnMapping
+      // API returns {id: number, name: string} where name is the label display name
+      // We need to find the matching mailbox by name to get the labelId
+      const mappings: KanbanColumnMapping[] = apiColumns
+        .map(col => {
+          // Find mailbox by name (case-insensitive)
+          const mailbox = mailboxes.find(
+            m => m.name.toLowerCase() === col.name.toLowerCase()
+          );
+          
+          if (!mailbox) {
+            console.warn(`No mailbox found for kanban column: ${col.name}`);
+            return null;
+          }
+          
+          return {
+            labelId: mailbox.id, // Use the actual Gmail labelId
+            kanbanColumnId: col.id,
+            name: col.name
+          };
+        })
+        .filter((m): m is KanbanColumnMapping => m !== null);
+      
+      setColumnMappings(mappings);
+      
+      // Update selected column IDs based on API response
+      const columnIds = mappings.map(m => m.labelId);
+      // Always include INBOX if not present
+      if (!columnIds.includes("INBOX")) {
+        columnIds.unshift("INBOX");
+      }
+      
+      console.log("Mapped column IDs:", columnIds);
+      setSelectedColumnIds(columnIds);
+      
+      // Update localStorage cache
+      try {
+        localStorage.setItem("kanban-selected-columns", JSON.stringify(columnIds));
+        localStorage.setItem("kanban-column-mappings", JSON.stringify(mappings));
+      } catch (error) {
+        console.error("Failed to save kanban columns to localStorage:", error);
+      }
+    } catch (error) {
+      console.error("Failed to load kanban columns from API:", error);
+      // Try to load from localStorage as fallback
+      try {
+        const savedMappings = localStorage.getItem("kanban-column-mappings");
+        if (savedMappings) {
+          const parsedMappings = JSON.parse(savedMappings);
+          setColumnMappings(parsedMappings);
+        }
+      } catch (err) {
+        console.error("Failed to load from localStorage:", err);
+      }
+    }
+  };
 
   useEffect(() => {
     if (onColumnsChange) {
@@ -194,28 +287,44 @@ export function KanbanBoard({
     }
   }, [selectedColumnIds]);
 
-  const addColumn = (columnId: string): boolean => {
+  const addColumn = async (columnId: string, _systemLabel: boolean): Promise<boolean> => {
     if (selectedColumnIds.includes(columnId)) {
       return false;
     }
 
+    // Just update UI - mailboxes API already handles the backend creation
+    // No need to call separate kanban API
     setSelectedColumnIds((prev) => [...prev, columnId]);
+    
+    // Update localStorage cache
+    try {
+      const updatedIds = [...selectedColumnIds, columnId];
+      localStorage.setItem("kanban-selected-columns", JSON.stringify(updatedIds));
+    } catch (error) {
+      console.error("Failed to save to localStorage:", error);
+    }
+    
+    // Reload columns from API to get the kanbanColumnId assigned by backend
+    setTimeout(() => {
+      loadKanbanColumnsFromAPI();
+    }, 500);
+    
     return true;
   };
 
   useEffect(() => {
     (
-      window as typeof window & { __kanbanAddColumn?: (id: string) => boolean }
+      window as typeof window & { __kanbanAddColumn?: (id: string, systemLabel: boolean) => Promise<boolean> }
     ).__kanbanAddColumn = addColumn;
     return () => {
       delete (
         window as typeof window & {
-          __kanbanAddColumn?: (id: string) => boolean;
+          __kanbanAddColumn?: (id: string, systemLabel: boolean) => Promise<boolean>;
         }
       ).__kanbanAddColumn;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedColumnIds]);
+  }, [selectedColumnIds, columnMappings]);
 
   // Apply filters to raw emails whenever they change
   useEffect(() => {
@@ -547,12 +656,30 @@ export function KanbanBoard({
     if (!columnToDelete) return;
 
     try {
-      // Just remove from board view, do not delete label from backend
-      toast.success("Column removed from board");
+      // Find the kanbanColumnId for this column
+      const mapping = columnMappings.find(m => m.labelId === columnToDelete.id);
+      
+      if (mapping?.kanbanColumnId) {
+        // Call DELETE API to remove from backend
+        await emailService.deleteKanbanColumn(mapping.kanbanColumnId);
+        console.log("Deleted kanban column via API:", mapping.kanbanColumnId);
+        
+        // Update mappings
+        setColumnMappings(prev => prev.filter(m => m.labelId !== columnToDelete.id));
+      }
 
+      // Update selected column IDs (optimistic UI update)
       setSelectedColumnIds((prev) => {
-        // Remove the deleted column from array
-        return prev.filter((id) => id !== columnToDelete.id);
+        const updated = prev.filter((id) => id !== columnToDelete.id);
+        // Update localStorage cache
+        try {
+          localStorage.setItem("kanban-selected-columns", JSON.stringify(updated));
+          const updatedMappings = columnMappings.filter(m => m.labelId !== columnToDelete.id);
+          localStorage.setItem("kanban-column-mappings", JSON.stringify(updatedMappings));
+        } catch (error) {
+          console.error("Failed to save to localStorage:", error);
+        }
+        return updated;
       });
 
       // Remove column from state
@@ -564,6 +691,14 @@ export function KanbanBoard({
         delete updated[columnToDelete.id];
         return updated;
       });
+      
+      setRawColumnEmails((prev) => {
+        const updated = { ...prev };
+        delete updated[columnToDelete.id];
+        return updated;
+      });
+
+      toast.success("Column removed from board");
     } catch (error) {
       console.error("Failed to remove column:", error);
       toast.error("Failed to remove column");
@@ -649,8 +784,30 @@ export function KanbanBoard({
     }
 
     try {
-      await emailService.updateLabel(columnId, trimmedName);
+      // Find the kanbanColumnId for this column
+      const mapping = columnMappings.find(m => m.labelId === columnId);
+      
+      // Update Gmail label via mailboxes API - it handles both label and kanban update
+      await emailService.updateLabel(columnId, trimmedName, mapping?.kanbanColumnId);
+      
+      // Update mappings locally
+      setColumnMappings(prev => 
+        prev.map(m => 
+          m.labelId === columnId ? { ...m, name: trimmedName } : m
+        )
+      );
+      
+      // Update localStorage cache
+      try {
+        const updatedMappings = columnMappings.map(m => 
+          m.labelId === columnId ? { ...m, name: trimmedName } : m
+        );
+        localStorage.setItem("kanban-column-mappings", JSON.stringify(updatedMappings));
+      } catch (error) {
+        console.error("Failed to save to localStorage:", error);
+      }
 
+      // Update UI (optimistic update)
       setColumns((prev) =>
         prev.map((col) =>
           col.id === columnId ? { ...col, name: trimmedName } : col

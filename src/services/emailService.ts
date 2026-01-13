@@ -640,11 +640,13 @@ export const emailService = {
     }
   },
 
-  async updateLabel(id: string, name: string): Promise<LabelResponse> {
+  async updateLabel(id: string, name: string, kanbanColumnId?: number): Promise<LabelResponse> {
     try {
-      return await apiClient.patch<LabelResponse>(`/mailboxes?id=${id}`, {
-        name,
-      });
+      const body: { name: string; kanbanColumnId?: number } = { name };
+      if (kanbanColumnId !== undefined) {
+        body.kanbanColumnId = kanbanColumnId;
+      }
+      return await apiClient.patch<LabelResponse>(`/mailboxes?id=${id}`, body);
     } catch (error) {
       console.error("Failed to update label:", error);
       throw error;
@@ -956,6 +958,37 @@ export const emailService = {
       }));
     } catch (error) {
       console.error("Failed to semantic search emails:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Kanban API Methods
+   */
+
+  /**
+   * Get all kanban columns
+   */
+  async getKanbanColumns(): Promise<Array<{ id: number; name: string }>> {
+    try {
+      const response = await apiClient.get<Array<{ id: number; name: string }>>(
+        "/kanban/columns"
+      );
+      return response;
+    } catch (error) {
+      console.error("Failed to get kanban columns:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete kanban column
+   */
+  async deleteKanbanColumn(kanbanColumnId: number): Promise<void> {
+    try {
+      await apiClient.delete<void>(`/kanban/columns/${kanbanColumnId}`);
+    } catch (error) {
+      console.error("Failed to delete kanban column:", error);
       throw error;
     }
   },
