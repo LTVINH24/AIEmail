@@ -1000,21 +1000,62 @@ export function InboxPage() {
   const handleEmailMove = async (
     emailId: string,
     targetMailboxId: string,
-    sourceMailboxId: string
+    sourceMailboxId: string,
+    threadId?: string
   ) => {
+    // Try to find email in rawEmails first, otherwise use provided threadId
     const email = rawEmails.find((e) => e.id === emailId);
-    if (!email) return;
+    const emailThreadId = email?.threadId || threadId || emailId;
+
+    if (!emailThreadId) {
+      console.error("Cannot move email: no threadId available");
+      toast.error("Failed to move email: invalid email data");
+      throw new Error("No threadId available");
+    }
 
     try {
-      await emailService.modifyLabels({
-        threadId: email.threadId,
-        addLabelIds: [targetMailboxId],
-        removeLabelIds: [sourceMailboxId],
+      // Determine which labels to add and remove
+      const addLabelIds: string[] = [];
+      const removeLabelIds: string[] = [];
+
+      // If moving TO a user-created label (not system label)
+      const targetMailbox = mailboxes.find((m) => m.id === targetMailboxId);
+      const sourceMailbox = mailboxes.find((m) => m.id === sourceMailboxId);
+
+      console.log("[handleEmailMove] Moving email:", {
+        emailId,
+        threadId: emailThreadId,
+        from: sourceMailboxId,
+        to: targetMailboxId,
+        targetType: targetMailbox?.type,
+        sourceType: sourceMailbox?.type,
       });
 
+      // Add the target label
+      if (targetMailboxId && !addLabelIds.includes(targetMailboxId)) {
+        addLabelIds.push(targetMailboxId);
+      }
+
+      // Remove the source label if it's a user label or specific system label
+      if (sourceMailbox?.type === "user" || sourceMailbox?.type === "custom") {
+        removeLabelIds.push(sourceMailboxId);
+      } else if (sourceMailboxId === "INBOX" && targetMailboxId !== "INBOX") {
+        // When moving from INBOX to another label, remove INBOX
+        removeLabelIds.push("INBOX");
+      }
+
+      console.log("[handleEmailMove] Label modifications:", { addLabelIds, removeLabelIds });
+
+      await emailService.modifyLabels({
+        threadId: emailThreadId,
+        addLabelIds,
+        removeLabelIds,
+      });
+
+      console.log("[handleEmailMove] ✅ Email moved successfully via API");
       toast.success("Email moved successfully");
     } catch (error) {
-      console.error("Failed to move email:", error);
+      console.error("[handleEmailMove] ❌ Failed to move email:", error);
       toast.error("Failed to move email");
       throw error;
     }

@@ -29,7 +29,8 @@ interface KanbanBoardProps {
   onEmailMove: (
     emailId: string,
     targetMailboxId: string,
-    sourceMailboxId: string
+    sourceMailboxId: string,
+    threadId?: string
   ) => Promise<void>;
   onSnooze: (
     emailId: string,
@@ -459,37 +460,70 @@ export function KanbanBoard({
       return;
     }
 
+    const emailToMove = rawColumnEmails[draggedSourceColumn]?.find(
+      (e) => e.id === draggedEmailId
+    );
+
+    if (!emailToMove) {
+      console.error("[KanbanBoard] Email not found in source column");
+      toast.error("Could not find email to move");
+      setDraggedEmailId(null);
+      setDraggedSourceColumn(null);
+      return;
+    }
+
+    console.log("[KanbanBoard] 🚀 Starting email move:", {
+      emailId: draggedEmailId,
+      threadId: emailToMove.threadId,
+      from: draggedSourceColumn,
+      to: targetColumnId,
+    });
+
+    // STEP 1: Optimistic UI update (cập nhật giao diện ngay lập tức)
+    console.log("[KanbanBoard] 📱 Updating UI optimistically...");
+    
+    // Store the previous state for rollback
+    const previousSourceEmails = rawColumnEmails[draggedSourceColumn] || [];
+    const previousTargetEmails = rawColumnEmails[targetColumnId] || [];
+    
+    // Remove from source column
+    setRawColumnEmails((prev) => ({
+      ...prev,
+      [draggedSourceColumn]:
+        prev[draggedSourceColumn]?.filter((e) => e.id !== draggedEmailId) ||
+        [],
+    }));
+
+    // Add to target column at the beginning
+    setRawColumnEmails((prev) => ({
+      ...prev,
+      [targetColumnId]: [emailToMove, ...(prev[targetColumnId] || [])],
+    }));
+
+    console.log("[KanbanBoard] ✅ UI updated");
+
+    // STEP 2: Call API in background (gọi API để cập nhật backend)
     try {
-      // Call API to update labels (backend)
-      await onEmailMove(draggedEmailId, targetColumnId, draggedSourceColumn);
-
-      // Update UI immediately without reloading (FE only)
-      const emailToMove = rawColumnEmails[draggedSourceColumn]?.find(
-        (e) => e.id === draggedEmailId
+      console.log("[KanbanBoard] 🌐 Calling API to update labels...");
+      await onEmailMove(
+        draggedEmailId,
+        targetColumnId,
+        draggedSourceColumn,
+        emailToMove.threadId
       );
-
-      if (emailToMove) {
-        // Remove from source column
-        setRawColumnEmails((prev) => ({
-          ...prev,
-          [draggedSourceColumn]:
-            prev[draggedSourceColumn]?.filter((e) => e.id !== draggedEmailId) ||
-            [],
-        }));
-
-        // Add to target column at the beginning
-        setRawColumnEmails((prev) => ({
-          ...prev,
-          [targetColumnId]: [emailToMove, ...(prev[targetColumnId] || [])],
-        }));
-      }
-
-      toast.success("Email moved successfully");
+      console.log("[KanbanBoard] ✅ API call successful - email moved permanently");
     } catch (error) {
-      console.error("Failed to move email:", error);
-      // If API call fails, reload both columns to restore correct state
-      await loadColumnEmails(draggedSourceColumn, true);
-      await loadColumnEmails(targetColumnId, true);
+      console.error("[KanbanBoard] ❌ API call failed:", error);
+      
+      // STEP 3: Rollback UI if API fails
+      console.log("[KanbanBoard] 🔄 Rolling back UI changes...");
+      setRawColumnEmails((prev) => ({
+        ...prev,
+        [draggedSourceColumn]: previousSourceEmails,
+        [targetColumnId]: previousTargetEmails,
+      }));
+      
+      toast.error("Failed to move email - changes reverted");
     } finally {
       setDraggedEmailId(null);
       setDraggedSourceColumn(null);
