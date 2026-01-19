@@ -69,7 +69,18 @@ export interface Mailbox {
   name: string;
   icon: string;
   unreadCount?: number;
-  type: 'inbox' | 'starred' | 'snoozed' | 'sent' | 'drafts' | 'archive' | 'trash' | 'spam' | 'custom' | 'system' | 'user';
+  type:
+    | "inbox"
+    | "starred"
+    | "snoozed"
+    | "sent"
+    | "drafts"
+    | "archive"
+    | "trash"
+    | "spam"
+    | "custom"
+    | "system"
+    | "user";
   isMain?: boolean;
 }
 
@@ -113,7 +124,7 @@ export interface Email {
   mailboxId: string;
   messageId?: string;
   snoozedUntil?: string;
-  workflowEmailId?: number; 
+  workflowEmailId?: number;
   messages?: Array<{
     id: string;
     messageId: string;
@@ -125,7 +136,7 @@ export interface Email {
     textBody?: string;
     htmlBody?: string;
     attachments: EmailAttachment[];
-  }>; 
+  }>;
 }
 
 export interface EmailListResponse {
@@ -154,11 +165,18 @@ export interface ModifyEmailRequest {
   removeLabelIds?: string[];
 }
 
-export type EmailStatus = 'INBOX' | 'TODO' | 'IN_PROGRESS' | 'DONE' | 'SNOOZED' | 'ARCHIVED';
+export type EmailStatus =
+  | "INBOX"
+  | "TODO"
+  | "IN_PROGRESS"
+  | "DONE"
+  | "SNOOZED"
+  | "ARCHIVED";
 
 export interface SnoozeEmailRequest {
-  snoozeUntil: string; 
+  snoozeUntil: string;
   note?: string;
+  previousLabelId?: string;
 }
 
 export interface UpdateEmailStatusRequest {
@@ -194,4 +212,3 @@ export interface EmailSummaryResponse {
   bullets: string[];
   summary: string;
 }
-

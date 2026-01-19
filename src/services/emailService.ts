@@ -77,7 +77,7 @@ function parseEmailAddress(emailStr: string): { name: string; email: string } {
 }
 
 function parseEmailAddresses(
-  emailsStr: string
+  emailsStr: string,
 ): Array<{ name: string; email: string }> {
   if (!emailsStr) return [];
   return emailsStr
@@ -94,7 +94,7 @@ export const emailService = {
 
       // Check if SNOOZED label exists, if not try to create it
       let snoozedLabel = labels.find(
-        (l) => l.name?.toUpperCase() === "SNOOZED"
+        (l) => l.name?.toUpperCase() === "SNOOZED",
       );
       if (!snoozedLabel) {
         try {
@@ -104,7 +104,7 @@ export const emailService = {
           // Refetch labels to get the newly created one
           labels = await apiClient.get<LabelResponse[]>("/mailboxes");
           snoozedLabel = labels.find(
-            (l) => l.name?.toUpperCase() === "SNOOZED"
+            (l) => l.name?.toUpperCase() === "SNOOZED",
           );
         } catch (error) {
           console.error("Failed to create SNOOZED label:", error);
@@ -191,7 +191,7 @@ export const emailService = {
     mailboxId: string,
     pageSize: number = 20,
     pageToken?: string,
-    query?: string
+    query?: string,
   ): Promise<EmailListResponse> {
     try {
       // Check if this is a SNOOZED mailbox - use workflow API for snoozed emails
@@ -216,7 +216,7 @@ export const emailService = {
           status: "SNOOZED",
         });
         const workflowEmails = await apiClient.get<EmailWorkflowResponse[]>(
-          `/api/emails?${params.toString()}`
+          `/api/emails?${params.toString()}`,
         );
 
         const emails: Email[] = workflowEmails.map((email) => ({
@@ -262,7 +262,7 @@ export const emailService = {
       params.append("_t", Date.now().toString());
 
       const response = await apiClient.get<ListThreadResponse>(
-        `/mailboxes/${mailboxId}/emails?${params.toString()}`
+        `/mailboxes/${mailboxId}/emails?${params.toString()}`,
       );
 
       // Map threads to Email objects
@@ -306,7 +306,7 @@ export const emailService = {
 
   async getEmailById(
     threadId: string,
-    mailboxId?: string
+    mailboxId?: string,
   ): Promise<Email | null> {
     try {
       if (!threadId || threadId === "undefined" || threadId === "null") {
@@ -315,7 +315,7 @@ export const emailService = {
       }
 
       const thread = await apiClient.get<ThreadDetailResponse>(
-        `/emails/${threadId}`
+        `/emails/${threadId}`,
       );
 
       if (!thread.messages || thread.messages.length === 0) {
@@ -389,7 +389,7 @@ export const emailService = {
     messageId: string,
     attachmentId: string,
     filename: string,
-    mimeType: string
+    mimeType: string,
   ): Promise<Blob> {
     const baseURL =
       import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
@@ -406,7 +406,7 @@ export const emailService = {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -535,7 +535,7 @@ export const emailService = {
     to: string,
     subject: string,
     body: string,
-    isHtml: boolean = false
+    isHtml: boolean = false,
   ): Promise<GmailSendResponse> {
     return this.sendEmail({
       to,
@@ -547,9 +547,15 @@ export const emailService = {
     });
   },
 
-  async createLabel(name: string, systemLabel: boolean = false): Promise<LabelResponse> {
+  async createLabel(
+    name: string,
+    systemLabel: boolean = false,
+  ): Promise<LabelResponse> {
     try {
-      return await apiClient.post<LabelResponse>("/mailboxes", { name, systemLabel });
+      return await apiClient.post<LabelResponse>("/mailboxes", {
+        name,
+        systemLabel,
+      });
     } catch (error) {
       console.error("Failed to create label:", error);
       throw error;
@@ -565,7 +571,7 @@ export const emailService = {
       const labels = await apiClient.get<LabelResponse[]>("/mailboxes");
       // Case-insensitive search for Snoozed label
       const snoozedLabel = labels.find(
-        (l) => l.name?.toUpperCase() === "SNOOZED"
+        (l) => l.name?.toUpperCase() === "SNOOZED",
       );
 
       if (snoozedLabel) {
@@ -582,7 +588,7 @@ export const emailService = {
       } catch (createError) {
         console.error("Failed to create SNOOZED label:", createError);
         throw new Error(
-          "SNOOZED label does not exist and could not be created"
+          "SNOOZED label does not exist and could not be created",
         );
       }
     } catch (error) {
@@ -601,7 +607,7 @@ export const emailService = {
           const response = await this.getEmailsByMailbox(
             labelId,
             50,
-            pageToken
+            pageToken,
           );
 
           const threadIds = response.emails
@@ -615,8 +621,8 @@ export const emailService = {
                   threadId,
                   addLabelIds: ["INBOX"],
                   removeLabelIds: [labelId],
-                })
-              )
+                }),
+              ),
             );
           }
 
@@ -629,7 +635,7 @@ export const emailService = {
       } catch (error) {
         console.warn(
           "Failed to move emails to INBOX before deleting label:",
-          error
+          error,
         );
       }
 
@@ -640,7 +646,11 @@ export const emailService = {
     }
   },
 
-  async updateLabel(id: string, name: string, kanbanColumnId?: number): Promise<LabelResponse> {
+  async updateLabel(
+    id: string,
+    name: string,
+    kanbanColumnId?: number,
+  ): Promise<LabelResponse> {
     try {
       const body: { name: string; kanbanColumnId?: number } = { name };
       if (kanbanColumnId !== undefined) {
@@ -657,12 +667,12 @@ export const emailService = {
    * Get all workflow emails (with status and summary)
    */
   async getWorkflowEmails(
-    status?: EmailStatus
+    status?: EmailStatus,
   ): Promise<EmailWorkflowResponse[]> {
     try {
       const params = status ? `?status=${status}` : "";
       return await apiClient.get<EmailWorkflowResponse[]>(
-        `/api/emails${params}`
+        `/api/emails${params}`,
       );
     } catch (error) {
       console.error("Failed to fetch workflow emails:", error);
@@ -675,13 +685,13 @@ export const emailService = {
    */
   async updateEmailStatus(
     emailId: number,
-    status: EmailStatus
+    status: EmailStatus,
   ): Promise<EmailWorkflowResponse> {
     try {
       const request: UpdateEmailStatusRequest = { status };
       return await apiClient.patch<EmailWorkflowResponse>(
         `/api/emails/${emailId}/status`,
-        request
+        request,
       );
     } catch (error) {
       console.error("Failed to update email status:", error);
@@ -695,16 +705,18 @@ export const emailService = {
   async snoozeEmail(
     emailId: number,
     snoozeUntil: Date,
-    note?: string
+    note?: string,
+    previousLabelId?: string,
   ): Promise<EmailWorkflowResponse> {
     try {
       const request: SnoozeEmailRequest = {
         snoozeUntil: snoozeUntil.toISOString(),
         note,
+        previousLabelId,
       };
       return await apiClient.post<EmailWorkflowResponse>(
         `/api/emails/${emailId}/snooze`,
-        request
+        request,
       );
     } catch (error) {
       console.error("Failed to snooze email:", error);
@@ -718,16 +730,18 @@ export const emailService = {
   async snoozeEmailByThreadId(
     threadId: string,
     snoozeUntil: Date,
-    note?: string
+    note?: string,
+    previousLabelId?: string,
   ): Promise<EmailWorkflowResponse> {
     try {
       const request: SnoozeEmailRequest = {
         snoozeUntil: snoozeUntil.toISOString(),
         note,
+        previousLabelId,
       };
       return await apiClient.post<EmailWorkflowResponse>(
         `/api/emails/thread/${threadId}/snooze`,
-        request
+        request,
       );
     } catch (error) {
       console.error("Failed to snooze email:", error);
@@ -742,7 +756,7 @@ export const emailService = {
     try {
       return await apiClient.post<EmailWorkflowResponse>(
         `/api/emails/${emailId}/unsnooze`,
-        {}
+        {},
       );
     } catch (error) {
       console.error("Failed to unsnooze email:", error);
@@ -794,7 +808,7 @@ export const emailService = {
       // URL encode the messageId to handle special characters like @, ., etc.
       const encodedMessageId = encodeURIComponent(messageId);
       const response = await apiClient.get<EmailSummaryResponse>(
-        `/emails/${encodedMessageId}/summary`
+        `/emails/${encodedMessageId}/summary`,
       );
       return response;
     } catch (error) {
@@ -821,7 +835,7 @@ export const emailService = {
   async searchEmails(query: string): Promise<Email[]> {
     try {
       const response = await apiClient.get<ThreadDetailResponse[]>(
-        `/emails/search?query=${encodeURIComponent(query)}`
+        `/emails/search?query=${encodeURIComponent(query)}`,
       );
 
       // Transform ThreadDetailResponse to Email format
@@ -839,7 +853,7 @@ export const emailService = {
           : undefined;
 
         const hasAttachments = thread.messages.some(
-          (m) => m.attachments && m.attachments.length > 0
+          (m) => m.attachments && m.attachments.length > 0,
         );
         const allAttachments = thread.messages.flatMap((m) =>
           (m.attachments || []).map((att) => ({
@@ -847,7 +861,7 @@ export const emailService = {
             name: att.filename,
             type: att.mimeType,
             attachmentId: att.attachmentId || undefined,
-          }))
+          })),
         );
 
         const isRead = thread.labelIds
@@ -920,7 +934,7 @@ export const emailService = {
   async searchSemanticEmails(query: string): Promise<Email[]> {
     try {
       const response = await apiClient.get<EmailWorkflowResponse[]>(
-        `/emails/search-sematic?query=${encodeURIComponent(query)}`
+        `/emails/search-sematic?query=${encodeURIComponent(query)}`,
       );
 
       // Transform EmailWorkflowResponse to Email format
@@ -971,9 +985,10 @@ export const emailService = {
    */
   async getKanbanColumns(): Promise<Array<{ id: number; name: string }>> {
     try {
-      const response = await apiClient.get<Array<{ id: number; name: string }>>(
-        "/kanban/columns"
-      );
+      const response =
+        await apiClient.get<Array<{ id: number; name: string }>>(
+          "/kanban/columns",
+        );
       return response;
     } catch (error) {
       console.error("Failed to get kanban columns:", error);
