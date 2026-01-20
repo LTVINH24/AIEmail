@@ -461,7 +461,7 @@ export function InboxPage() {
             try {
               await emailService.archiveEmail(
                 emails.find((e) => e.id === selectedEmailId)?.threadId ||
-                  selectedEmailId,
+                selectedEmailId,
               );
               setRawEmails((prev) =>
                 prev.filter((e) => e.id !== selectedEmailId),
@@ -993,9 +993,9 @@ export function InboxPage() {
           rawEmails.map((email) =>
             emailIds.includes(email.id)
               ? {
-                  ...email,
-                  isRead: originalStates.get(email.id) ?? email.isRead,
-                }
+                ...email,
+                isRead: originalStates.get(email.id) ?? email.isRead,
+              }
               : email,
           ),
         );
@@ -1159,9 +1159,8 @@ export function InboxPage() {
           minute: "2-digit",
           hour12: true,
         },
-      )}, ${email.from.name} <${
-        email.from.email
-      }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
+      )}, ${email.from.name} <${email.from.email
+        }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
 
       setComposeDefaults({
         to: email.from.email,
@@ -1192,9 +1191,8 @@ export function InboxPage() {
           minute: "2-digit",
           hour12: true,
         },
-      )}, ${email.from.name} <${
-        email.from.email
-      }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
+      )}, ${email.from.name} <${email.from.email
+        }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
 
       const allRecipients = [
         email.from.email,
@@ -1525,8 +1523,7 @@ export function InboxPage() {
         );
       } else {
         toast.success(
-          `Found ${searchResults.length} email${
-            searchResults.length === 1 ? "" : "s"
+          `Found ${searchResults.length} email${searchResults.length === 1 ? "" : "s"
           }`,
         );
       }
@@ -1618,7 +1615,7 @@ export function InboxPage() {
               {isSearchMode
                 ? `Search (${emails.length})`
                 : mailboxes.find((m) => m.id === selectedMailboxId)?.name ||
-                  "Inbox"}
+                "Inbox"}
             </h1>
             {isSearchMode && (
               <Button
@@ -1701,15 +1698,13 @@ export function InboxPage() {
             onSearch={handleSearch}
             isSearching={isSearching}
           />
-          {!isSearchMode && (
-            <div className="flex justify-end">
-              <EmailFilters
-                filters={filters}
-                onFiltersChange={setFilters}
-                onClear={handleFilterClear}
-              />
-            </div>
-          )}
+          <div className="flex justify-end">
+            <EmailFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              onClear={handleFilterClear}
+            />
+          </div>
         </div>
       )}
 
@@ -2034,9 +2029,8 @@ export function InboxPage() {
           <>
             {/* Column 2: Email List (Hidden on mobile when detail is shown) */}
             <div
-              className={`${
-                showEmailDetail ? "hidden lg:flex" : "flex-1 min-w-0"
-              } lg:flex-1 lg:min-w-0 flex flex-col`}
+              className={`${showEmailDetail ? "hidden lg:flex" : "flex-1 min-w-0"
+                } lg:flex-1 lg:min-w-0 flex flex-col`}
             >
               {/* View Toggle Bar - Desktop */}
               <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
@@ -2044,26 +2038,14 @@ export function InboxPage() {
                   {isSearchMode
                     ? `Search Results (${emails.length})`
                     : mailboxes.find((m) => m.id === selectedMailboxId)?.name ||
-                      "Inbox"}
+                    "Inbox"}
                 </h2>
                 <div className="flex items-center gap-2">
-                  {isSearchMode && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleClearSearch}
-                      className="gap-2"
-                    >
-                      Clear Search
-                    </Button>
-                  )}
-                  {!isSearchMode && (
-                    <EmailFilters
-                      filters={filters}
-                      onFiltersChange={setFilters}
-                      onClear={handleFilterClear}
-                    />
-                  )}
+                  <EmailFilters
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    onClear={handleFilterClear}
+                  />
                   <Button
                     variant="ghost"
                     size="sm"
@@ -2212,11 +2194,10 @@ export function InboxPage() {
 
             {/* Column 3: Email Detail (Mobile: full screen when shown, Desktop: always visible) */}
             <div
-              className={`${
-                showEmailDetail
+              className={`${showEmailDetail
                   ? "flex-1"
                   : "hidden lg:block lg:flex-1 lg:min-w-0"
-              }`}
+                }`}
             >
               <EmailDetail
                 email={selectedEmail}
