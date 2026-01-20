@@ -76,12 +76,12 @@ export function KanbanCard({
       onDragEnd={onDragEnd}
       onClick={onSelect}
       className={cn(
-        "group relative cursor-grab active:cursor-grabbing transition-all duration-300 hover:shadow-md mb-2 border hover:border-primary/50 shadow-sm overflow-hidden",
+        "w-full group relative cursor-grab active:cursor-grabbing transition-all duration-300 hover:shadow-md mb-2 border hover:border-primary/50 shadow-sm overflow-hidden",
         isSelected
           ? "ring-2 ring-primary border-primary shadow-md"
           : "border-transparent bg-background/50",
         isDragging && "opacity-50",
-        !email.isRead ? "bg-background" : "bg-background/40" // More subtle background diff
+        !email.isRead ? "bg-background" : "bg-background/40",
       )}
     >
       {/* Status Strip - Only for unread */}
@@ -101,7 +101,7 @@ export function KanbanCard({
             <span
               className={cn(
                 "text-sm truncate font-medium",
-                !email.isRead ? "text-foreground" : "text-muted-foreground"
+                !email.isRead ? "text-foreground" : "text-muted-foreground",
               )}
             >
               {email.from.name || email.from.email}
@@ -118,7 +118,7 @@ export function KanbanCard({
             "text-sm leading-snug line-clamp-2",
             !email.isRead
               ? "font-semibold text-foreground"
-              : "text-muted-foreground font-normal"
+              : "text-muted-foreground font-normal",
           )}
         >
           {email.subject || "(No Subject)"}

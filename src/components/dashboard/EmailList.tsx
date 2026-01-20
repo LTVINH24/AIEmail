@@ -41,6 +41,7 @@ interface EmailListProps {
   onMoveToInbox?: (emailIds: string[]) => void;
   onToggleRead: (emailIds: string[]) => void;
   isLoading?: boolean;
+  isLoadingMore?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
 }
@@ -58,6 +59,7 @@ export function EmailList({
   onMoveToInbox,
   onToggleRead,
   isLoading = false,
+  isLoadingMore = false,
   hasMore = false,
   onLoadMore,
 }: EmailListProps) {
@@ -292,7 +294,7 @@ export function EmailList({
                     isSelected && "bg-blue-50 hover:bg-blue-50",
                     !email.isRead
                       ? "bg-blue-50/30 border-l-blue-500 font-medium"
-                      : "border-l-transparent hover:bg-gray-50"
+                      : "border-l-transparent hover:bg-gray-50",
                   )}
                   onClick={() => onSelectEmail(email.id)}
                 >
@@ -321,7 +323,7 @@ export function EmailList({
                           "h-3.5 w-3.5 sm:h-4 sm:w-4 transition-colors",
                           email.isStarred
                             ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-400 hover:text-yellow-400"
+                            : "text-gray-400 hover:text-yellow-400",
                         )}
                       />
                     </button>
@@ -345,7 +347,7 @@ export function EmailList({
                                 "text-xs sm:text-sm truncate flex-1 min-w-0",
                                 !email.isRead
                                   ? "font-semibold text-gray-900"
-                                  : "text-gray-700"
+                                  : "text-gray-700",
                               )}
                             >
                               {email.from.name}
@@ -373,7 +375,7 @@ export function EmailList({
                               "text-xs sm:text-sm truncate mb-0.5 sm:mb-1",
                               !email.isRead
                                 ? "font-semibold text-gray-900"
-                                : "text-gray-600"
+                                : "text-gray-600",
                             )}
                           >
                             {email.subject}
@@ -383,7 +385,7 @@ export function EmailList({
                               "text-xs sm:text-sm truncate",
                               !email.isRead
                                 ? "text-gray-700 font-medium"
-                                : "text-gray-500"
+                                : "text-gray-500",
                             )}
                           >
                             {email.preview}
@@ -395,7 +397,7 @@ export function EmailList({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSummaryEmailId(
-                                  email.messages?.[0]?.id || email.id
+                                  email.messages?.[0]?.id || email.id,
                                 );
                                 setSummaryEmailSubject(email.subject);
                               }}
@@ -415,14 +417,21 @@ export function EmailList({
 
           {!isLoading && hasMore && (
             <div className="p-4 text-center border-t bg-gray-50">
-              <Button
-                onClick={onLoadMore}
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto min-w-[120px]"
-              >
-                Load More
-              </Button>
+              {isLoadingMore ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent text-blue-600" />
+                  Loading more...
+                </div>
+              ) : (
+                <Button
+                  onClick={onLoadMore}
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto min-w-[120px]"
+                >
+                  Load More
+                </Button>
+              )}
             </div>
           )}
         </div>

@@ -250,6 +250,7 @@ export function InboxPage() {
 
   const [isLoadingMailboxes, setIsLoadingMailboxes] = useState(true);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>(
     undefined,
   );
@@ -687,7 +688,11 @@ export function InboxPage() {
   };
 
   const loadEmails = async (reset: boolean = false) => {
-    setIsLoadingEmails(true);
+    if (reset) {
+      setIsLoadingEmails(true);
+    } else {
+      setIsLoadingMore(true);
+    }
 
     const startTime = Date.now();
     const minLoadingTime = 500;
@@ -732,11 +737,12 @@ export function InboxPage() {
       toast.error("Failed to load emails");
     } finally {
       setIsLoadingEmails(false);
+      setIsLoadingMore(false);
     }
   };
 
   const handleLoadMore = () => {
-    if (!isLoadingEmails && hasMore) {
+    if (!isLoadingEmails && !isLoadingMore && hasMore) {
       loadEmails(false);
     }
   };
@@ -1376,7 +1382,7 @@ export function InboxPage() {
 
         await loadMailboxes();
 
-        toast.success(`Label "${labelName}" created successfully`);
+        // toast.success(`Label "${labelName}" created successfully`);
       } else {
         // Existing Label: systemLabel = true
         if (!labelId) {
@@ -2204,6 +2210,7 @@ export function InboxPage() {
                   onMoveToInbox={handleMoveToInbox}
                   onToggleRead={handleToggleRead}
                   isLoading={isLoadingEmails || isSearching}
+                  isLoadingMore={isLoadingMore}
                   hasMore={hasMore && !isSearchMode}
                   onLoadMore={handleLoadMore}
                 />

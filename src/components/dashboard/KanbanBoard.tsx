@@ -932,8 +932,11 @@ export function KanbanBoard({
 
   return (
     <div className="flex flex-col h-full bg-linear-to-br from-background to-muted/30">
-      <div className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
-        <div className="flex h-full gap-6 p-6" style={{ minWidth: "100%" }}>
+      <div className="flex-1 md:overflow-x-auto md:overflow-y-hidden overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+        <div
+          className="flex flex-col md:flex-row h-auto md:h-full gap-4 md:gap-6 p-4 md:p-6"
+          style={{ minWidth: "100%" }}
+        >
           {columns.map((column) => {
             const isDefault = ["INBOX"].includes(column.id);
             const currentFilter =

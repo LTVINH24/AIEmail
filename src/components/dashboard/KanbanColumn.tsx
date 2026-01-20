@@ -109,16 +109,17 @@ export function KanbanColumn({
   return (
     <div
       className={cn(
-        "flex flex-col flex-1 rounded-xl border bg-background/60 backdrop-blur-sm transition-all duration-300 h-full max-w-sm shadow-sm hover:shadow-md",
+        "flex flex-col rounded-xl border bg-background/60 backdrop-blur-sm transition-all duration-300 shadow-sm hover:shadow-md",
+        "w-full md:w-[calc((100%-48px)/3)] shrink-0",
+        "h-fit md:h-full",
         isDragOver && "border-primary ring-1 ring-primary/20 bg-primary/5",
       )}
-      style={{ minWidth: "calc((100% - 48px) / 3)" }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Column Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-muted/20 shrink-0 h-[72px]">
+      <div className="flex items-center gap-2 p-3 border-b bg-muted/20 shrink-0 h-[64px]">
         <div
           className={cn(
             "p-2 rounded-lg bg-background shadow-sm border",
@@ -158,7 +159,7 @@ export function KanbanColumn({
           </h3>
         )}
 
-        <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-muted text-xs font-medium text-muted-foreground mr-auto ml-2">
+        <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-muted text-xs font-medium text-muted-foreground ml-1">
           {emails.length}
         </div>
 
@@ -170,6 +171,7 @@ export function KanbanColumn({
               onFiltersChange={onFiltersChange}
               onClear={onFilterClear}
               className="scale-90 origin-right"
+              compact={true}
             />
           </div>
         )}
@@ -188,7 +190,7 @@ export function KanbanColumn({
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+      <div className="flex-1 md:overflow-y-auto overflow-y-visible p-3 space-y-3 min-h-0 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
         <div className="space-y-3">
           {emails.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
