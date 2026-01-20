@@ -879,7 +879,7 @@ export const emailService = {
           cc,
           bcc,
           subject: firstMessage.subject,
-          preview: thread.snippet,
+          preview: thread.snippet || firstMessage.snippet || "",
           body: firstMessage.textBody || firstMessage.snippet,
           htmlBody: firstMessage.htmlBody,
           timestamp: lastMessage.date,
@@ -949,13 +949,13 @@ export const emailService = {
           workflowEmail.summary ||
           (workflowEmail.body
             ? workflowEmail.body
-                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-                .replace(/<[^>]*>/g, "")
-                .replace(/&nbsp;/g, " ")
-                .replace(/\s+/g, " ")
-                .trim()
-                .slice(0, 100)
+              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+              .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+              .replace(/<[^>]*>/g, "")
+              .replace(/&nbsp;/g, " ")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 100)
             : ""),
         body: workflowEmail.body || "",
         htmlBody: undefined,
