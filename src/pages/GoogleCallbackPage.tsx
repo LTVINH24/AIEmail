@@ -44,12 +44,12 @@ export const GoogleCallbackPage: React.FC = () => {
         emailService
           .syncSemanticEmails()
           .catch((err) =>
-            console.error("Failed to trigger semantic sync on login:", err)
+            console.error("Failed to trigger semantic sync on login:", err),
           );
 
         await new Promise((resolve) => setTimeout(resolve, 200));
 
-        toast.success("Google sign-in successful!");
+        // toast.success("Google sign-in successful!");
 
         console.log("GoogleCallback - Navigating to inbox");
         navigate("/inbox", { replace: true });

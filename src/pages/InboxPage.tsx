@@ -462,7 +462,7 @@ export function InboxPage() {
             try {
               await emailService.archiveEmail(
                 emails.find((e) => e.id === selectedEmailId)?.threadId ||
-                selectedEmailId,
+                  selectedEmailId,
               );
               setRawEmails((prev) =>
                 prev.filter((e) => e.id !== selectedEmailId),
@@ -567,15 +567,15 @@ export function InboxPage() {
                   Forward
                 </div>
                 <div>
-                  <kbd className="px-1.5 py-0.5 bg-muted rounded">e</kbd>{" "}
-                  Archive |{" "}
+                  {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">e</kbd>{" "}
+                  Archive |{" "} */}
                   <kbd className="px-1.5 py-0.5 bg-muted rounded">#</kbd> Delete
                   | <kbd className="px-1.5 py-0.5 bg-muted rounded">s</kbd> Star
                 </div>
                 <div>
                   <kbd className="px-1.5 py-0.5 bg-muted rounded">u</kbd> Mark
                   Unread |{" "}
-                  <kbd className="px-1.5 py-0.5 bg-muted rounded">x</kbd> Select
+                  {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">x</kbd> Select */}
                 </div>
                 <div>
                   <kbd className="px-1.5 py-0.5 bg-muted rounded">v</kbd> Toggle
@@ -954,7 +954,7 @@ export function InboxPage() {
           }),
         ),
       );
-      toast.success(`Moved ${emailIds.length} email(s) to inbox`);
+      // toast.success(`Moved ${emailIds.length} email(s) to inbox`);
     } catch (error) {
       console.error("Failed to move to inbox:", error);
       toast.error("Failed to move to inbox");
@@ -999,9 +999,9 @@ export function InboxPage() {
           rawEmails.map((email) =>
             emailIds.includes(email.id)
               ? {
-                ...email,
-                isRead: originalStates.get(email.id) ?? email.isRead,
-              }
+                  ...email,
+                  isRead: originalStates.get(email.id) ?? email.isRead,
+                }
               : email,
           ),
         );
@@ -1130,7 +1130,7 @@ export function InboxPage() {
         }
       }
 
-      toast.success("Email restored from snooze");
+      // toast.success("Email restored from snooze");
     } catch (error) {
       console.error("Failed to unsnooze email:", error);
       toast.error("Failed to unsnooze email");
@@ -1165,8 +1165,9 @@ export function InboxPage() {
           minute: "2-digit",
           hour12: true,
         },
-      )}, ${email.from.name} <${email.from.email
-        }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
+      )}, ${email.from.name} <${
+        email.from.email
+      }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
 
       setComposeDefaults({
         to: email.from.email,
@@ -1197,8 +1198,9 @@ export function InboxPage() {
           minute: "2-digit",
           hour12: true,
         },
-      )}, ${email.from.name} <${email.from.email
-        }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
+      )}, ${email.from.name} <${
+        email.from.email
+      }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
 
       const allRecipients = [
         email.from.email,
@@ -1473,7 +1475,7 @@ export function InboxPage() {
       await emailService.deleteLabel(labelId);
 
       toast.dismiss(loadingToast);
-      toast.success(`Label "${labelName}" deleted. All emails moved to Inbox.`);
+      toast.success(`Label "${labelName}" deleted.`);
 
       await loadMailboxes();
 
@@ -1528,10 +1530,11 @@ export function InboxPage() {
           isSemantic ? "No emails found matching meaning" : "No emails found",
         );
       } else {
-        toast.success(
-          `Found ${searchResults.length} email${searchResults.length === 1 ? "" : "s"
-          }`,
-        );
+        // toast.success(
+        //   `Found ${searchResults.length} email${
+        //     searchResults.length === 1 ? "" : "s"
+        //   }`,
+        // );
       }
     } catch (error) {
       console.error("Search failed:", error);
@@ -1621,7 +1624,7 @@ export function InboxPage() {
               {isSearchMode
                 ? `Search (${emails.length})`
                 : mailboxes.find((m) => m.id === selectedMailboxId)?.name ||
-                "Inbox"}
+                  "Inbox"}
             </h1>
             {isSearchMode && (
               <Button
@@ -1734,7 +1737,30 @@ export function InboxPage() {
           <div className="flex-1 min-w-0 flex flex-col">
             {/* View Toggle Bar */}
             <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
-              <h2 className="text-lg font-semibold">Kanban Board</h2>
+              <div className="flex items-center gap-3">
+                {isSearchMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearSearch}
+                    className="gap-2 rounded-md border-primary/10 text-primary hover:bg-primary/10  transition-all duration-300"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </Button>
+                )}
+                <h2 className="text-lg font-semibold">
+                  {isSearchMode ? "Search Results" : "Kanban Board"}
+                </h2>
+              </div>
+              <div className="flex-1 max-w-xl mx-4">
+                <SearchBar
+                  emails={emails}
+                  onSearch={handleSearch}
+                  isSearching={isSearching}
+                  value={_searchQuery}
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <Dialog
                   open={isAddColumnDialogOpen}
@@ -1914,10 +1940,10 @@ export function InboxPage() {
                             Forward
                           </div>
                           <div>
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                            {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">
                               e
                             </kbd>{" "}
-                            Archive |{" "}
+                            Archive |{" "} */}
                             <kbd className="px-1.5 py-0.5 bg-muted rounded">
                               #
                             </kbd>{" "}
@@ -1925,17 +1951,17 @@ export function InboxPage() {
                             <kbd className="px-1.5 py-0.5 bg-muted rounded">
                               s
                             </kbd>{" "}
-                            Star
-                          </div>
-                          <div>
+                            Star |
                             <kbd className="px-1.5 py-0.5 bg-muted rounded">
                               u
                             </kbd>{" "}
-                            Mark Unread |{" "}
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                            Mark Unread{" "}
+                          </div>
+                          <div>
+                            {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">
                               x
                             </kbd>{" "}
-                            Select
+                            Select */}
                           </div>
                           <div>
                             <kbd className="px-1.5 py-0.5 bg-muted rounded">
@@ -1975,16 +2001,37 @@ export function InboxPage() {
             </div>
             {/* Kanban Board */}
             <div className="flex-1 min-h-0">
-              <KanbanBoard
-                mailboxes={mailboxes}
-                selectedEmailId={selectedEmailId}
-                onEmailSelect={handleSelectEmail}
-                onEmailMove={handleEmailMove}
-                onSnooze={handleSnooze}
-                onUnsnooze={handleUnsnooze}
-                refreshTrigger={kanbanRefreshTrigger}
-                onLabelRename={loadMailboxes}
-              />
+              {isSearchMode ? (
+                <div className="flex-1 min-h-0 bg-white">
+                  <EmailList
+                    emails={emails}
+                    selectedEmailId={selectedEmailId}
+                    mailboxId={selectedMailboxId}
+                    onSelectEmail={handleSelectEmail}
+                    onToggleStar={handleToggleStar}
+                    onRefresh={() => handleClearSearch()}
+                    onCompose={() => setIsComposeOpen(true)}
+                    onDelete={handleDelete}
+                    onPermanentDelete={handlePermanentDelete}
+                    onMoveToInbox={handleMoveToInbox}
+                    onToggleRead={handleToggleRead}
+                    isLoading={isLoadingEmails || isSearching}
+                    isLoadingMore={false}
+                    hideActionButtons={true}
+                  />
+                </div>
+              ) : (
+                <KanbanBoard
+                  mailboxes={mailboxes}
+                  selectedEmailId={selectedEmailId}
+                  onEmailSelect={handleSelectEmail}
+                  onEmailMove={handleEmailMove}
+                  onSnooze={handleSnooze}
+                  onUnsnooze={handleUnsnooze}
+                  refreshTrigger={kanbanRefreshTrigger}
+                  onLabelRename={loadMailboxes}
+                />
+              )}
             </div>
             {/* Email Detail Modal/Sheet */}
             {selectedEmail && (
@@ -2035,8 +2082,9 @@ export function InboxPage() {
           <>
             {/* Column 2: Email List (Hidden on mobile when detail is shown) */}
             <div
-              className={`${showEmailDetail ? "hidden lg:flex" : "flex-1 min-w-0"
-                } lg:flex-1 lg:min-w-0 flex flex-col`}
+              className={`${
+                showEmailDetail ? "hidden lg:flex" : "flex-1 min-w-0"
+              } lg:flex-1 lg:min-w-0 flex flex-col`}
             >
               {/* View Toggle Bar - Desktop */}
               <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
@@ -2044,7 +2092,7 @@ export function InboxPage() {
                   {isSearchMode
                     ? `Search Results (${emails.length})`
                     : mailboxes.find((m) => m.id === selectedMailboxId)?.name ||
-                    "Inbox"}
+                      "Inbox"}
                 </h2>
                 <div className="flex items-center gap-2">
                   <EmailFilters
@@ -2106,10 +2154,10 @@ export function InboxPage() {
                               Forward
                             </div>
                             <div>
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">
                                 e
                               </kbd>{" "}
-                              Archive |{" "}
+                              Archive |{" "} */}
                               <kbd className="px-1.5 py-0.5 bg-muted rounded">
                                 #
                               </kbd>{" "}
@@ -2117,17 +2165,17 @@ export function InboxPage() {
                               <kbd className="px-1.5 py-0.5 bg-muted rounded">
                                 s
                               </kbd>{" "}
-                              Star
-                            </div>
-                            <div>
+                              Star |
                               <kbd className="px-1.5 py-0.5 bg-muted rounded">
                                 u
                               </kbd>{" "}
-                              Mark Unread |{" "}
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              Mark Unread{" "}
+                            </div>
+                            <div>
+                              {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">
                                 x
                               </kbd>{" "}
-                              Select
+                              Select */}
                             </div>
                             <div>
                               <kbd className="px-1.5 py-0.5 bg-muted rounded">
@@ -2201,10 +2249,11 @@ export function InboxPage() {
 
             {/* Column 3: Email Detail (Mobile: full screen when shown, Desktop: always visible) */}
             <div
-              className={`${showEmailDetail
+              className={`${
+                showEmailDetail
                   ? "flex-1"
                   : "hidden lg:block lg:flex-1 lg:min-w-0"
-                }`}
+              }`}
             >
               <EmailDetail
                 email={selectedEmail}

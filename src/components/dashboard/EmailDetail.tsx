@@ -359,7 +359,7 @@ export function EmailDetail({
           onClick={() => setShowSummaryModal(true)}
           variant="outline"
           size="sm"
-          className="gap-1.5 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200 text-purple-700 hover:text-purple-800"
+          className="gap-1.5 bg-linear-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200 text-purple-700 hover:text-purple-800"
         >
           <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span className="hidden sm:inline">AI Summary</span>

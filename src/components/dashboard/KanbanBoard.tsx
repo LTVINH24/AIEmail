@@ -636,7 +636,7 @@ export function KanbanBoard({
             [targetColumnId]: [email, ...(prev[targetColumnId] || [])],
           }));
 
-          toast.success("Email unsnoozed successfully");
+          // toast.success("Email unsnoozed successfully");
         } catch (error) {
           console.error("Failed to unsnooze email:", error);
           toast.error("Failed to unsnooze email");
@@ -797,7 +797,7 @@ export function KanbanBoard({
         return updated;
       });
 
-      toast.success("Column removed from board");
+      // toast.success("Column removed from board");
     } catch (error) {
       console.error("Failed to remove column:", error);
       toast.error("Failed to remove column");
@@ -920,7 +920,7 @@ export function KanbanBoard({
         ),
       );
 
-      toast.success(`Renamed to "${trimmedName}"`);
+      // toast.success(`Renamed to "${trimmedName}"`);
 
       onLabelRename?.();
     } catch (error) {

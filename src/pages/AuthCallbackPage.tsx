@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useAuth } from '../hooks/useAuth';
-import { Card } from '../components/ui/card';
-import { Loader2, Mail } from 'lucide-react';
+import React, { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useAuth } from "../hooks/useAuth";
+import { Card } from "../components/ui/card";
+import { Loader2, Mail } from "lucide-react";
 
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,45 +13,48 @@ export const AuthCallbackPage: React.FC = () => {
 
   useEffect(() => {
     if (isProcessed) return;
-    
-    const processCallback = async () => {
-      
-      const accessToken = searchParams.get('accessToken');
-      const refreshToken = searchParams.get('refreshToken');
-      const email = searchParams.get('email');
-      const error = searchParams.get('error');
 
-      console.log('AuthCallback - Tokens received:', {
-        accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'null',
-        refreshToken: refreshToken ? `${refreshToken.substring(0, 20)}...` : 'null',
-        email
+    const processCallback = async () => {
+      const accessToken = searchParams.get("accessToken");
+      const refreshToken = searchParams.get("refreshToken");
+      const email = searchParams.get("email");
+      const error = searchParams.get("error");
+
+      console.log("AuthCallback - Tokens received:", {
+        accessToken: accessToken
+          ? `${accessToken.substring(0, 20)}...`
+          : "null",
+        refreshToken: refreshToken
+          ? `${refreshToken.substring(0, 20)}...`
+          : "null",
+        email,
       });
 
       if (error) {
         toast.error(`Google authentication failed: ${error}`);
-        navigate('/login', { replace: true });
+        navigate("/login", { replace: true });
         return;
       }
 
       if (!accessToken || !refreshToken || !email) {
-        toast.error('Authentication tokens not received');
-        navigate('/login', { replace: true });
+        toast.error("Authentication tokens not received");
+        navigate("/login", { replace: true });
         return;
       }
 
       try {
         setAuthState(accessToken, refreshToken, email);
-        
-        toast.success('Google sign-in successful!');
+
+        //toast.success('Google sign-in successful!');
         setIsProcessed(true);
-        
+
         setTimeout(() => {
-          navigate('/inbox', { replace: true });
+          navigate("/inbox", { replace: true });
         }, 100);
       } catch (error) {
-        console.error('Auth callback error:', error);
-        toast.error('Failed to complete authentication');
-        navigate('/login', { replace: true });
+        console.error("Auth callback error:", error);
+        toast.error("Failed to complete authentication");
+        navigate("/login", { replace: true });
       } finally {
         setIsProcessed(true);
       }

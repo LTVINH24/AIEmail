@@ -44,6 +44,7 @@ interface EmailListProps {
   isLoadingMore?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
+  hideActionButtons?: boolean;
 }
 
 export function EmailList({
@@ -62,6 +63,7 @@ export function EmailList({
   isLoadingMore = false,
   hasMore = false,
   onLoadMore,
+  hideActionButtons = false,
 }: EmailListProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -177,74 +179,80 @@ export function EmailList({
   return (
     <div className="h-full flex flex-col bg-white border-r">
       {/* Action Bar */}
-      <div className="p-2 sm:p-4 border-b space-y-2">
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-          <Button onClick={onCompose} size="sm" className="gap-1.5">
-            <Edit className="h-4 w-4" />
-            <span className="hidden xs:inline">Compose</span>
-          </Button>
-          <Button
-            onClick={onRefresh}
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span className="hidden xs:inline">Refresh</span>
-          </Button>
-        </div>
-
-        {selectedIds.size > 0 && (
+      {(!hideActionButtons || selectedIds.size > 0) && (
+        <div className="p-2 sm:p-4 border-b space-y-2">
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm text-gray-600">
-              {selectedIds.size} selected
-            </span>
-
-            {mailboxId === "TRASH" ? (
-              <>
-                <Button
-                  onClick={handleBulkDelete}
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-red-600 hover:text-red-700"
-                >
-                  <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Delete Forever</span>
-                </Button>
-                <Button
-                  onClick={handleBulkMoveToInbox}
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                >
-                  <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Move to Inbox</span>
-                </Button>
-              </>
-            ) : (
+            {!hideActionButtons && (
+              <Button onClick={onCompose} size="sm" className="gap-1.5">
+                <Edit className="h-4 w-4" />
+                <span className="hidden xs:inline">Compose</span>
+              </Button>
+            )}
+            {!hideActionButtons && (
               <Button
-                onClick={handleBulkDelete}
+                onClick={onRefresh}
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
               >
-                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Delete</span>
+                <RefreshCw className="h-4 w-4" />
+                <span className="hidden xs:inline">Refresh</span>
               </Button>
             )}
-
-            <Button
-              onClick={handleBulkToggleRead}
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-            >
-              <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Toggle Read</span>
-            </Button>
           </div>
-        )}
-      </div>
+
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className="text-xs sm:text-sm text-gray-600">
+                {selectedIds.size} selected
+              </span>
+
+              {mailboxId === "TRASH" ? (
+                <>
+                  <Button
+                    onClick={handleBulkDelete}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-red-600 hover:text-red-700"
+                  >
+                    <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden xs:inline">Delete Forever</span>
+                  </Button>
+                  <Button
+                    onClick={handleBulkMoveToInbox}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden xs:inline">Move to Inbox</span>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={handleBulkDelete}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Delete</span>
+                </Button>
+              )}
+
+              <Button
+                onClick={handleBulkToggleRead}
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+              >
+                <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Toggle Read</span>
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Email List */}
       <div className="flex-1 overflow-y-auto">

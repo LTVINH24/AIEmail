@@ -11,6 +11,7 @@ interface SearchBarProps {
   onSearch: (query: string, isSemantic: boolean) => void;
   isSearching?: boolean;
   className?: string;
+  value?: string;
 }
 
 interface Suggestion {
@@ -24,6 +25,7 @@ export function SearchBar({
   onSearch,
   isSearching = false,
   className,
+  value,
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -32,6 +34,12 @@ export function SearchBar({
   const [isSemantic, setIsSemantic] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (value !== undefined) {
+      setQuery(value);
+    }
+  }, [value]);
 
   // Generate suggestions based on query
   useEffect(() => {
@@ -43,7 +51,7 @@ export function SearchBar({
           type: "history",
           value: q,
           label: q,
-        }))
+        })),
       );
       return;
     }
@@ -174,7 +182,7 @@ export function SearchBar({
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIndex((prev) =>
-        prev < suggestions.length - 1 ? prev + 1 : prev
+        prev < suggestions.length - 1 ? prev + 1 : prev,
       );
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
@@ -266,7 +274,7 @@ export function SearchBar({
         }
         className={cn(
           "transition-colors gap-2 min-w-[120px]",
-          isSemantic && "bg-purple-600 hover:bg-purple-700"
+          isSemantic && "bg-purple-600 hover:bg-purple-700",
         )}
       >
         <Sparkles
@@ -289,7 +297,7 @@ export function SearchBar({
               onClick={() => handleSuggestionClick(suggestion)}
               className={cn(
                 "w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left",
-                selectedIndex === index && "bg-gray-100"
+                selectedIndex === index && "bg-gray-100",
               )}
             >
               {getSuggestionIcon(suggestion.type)}
